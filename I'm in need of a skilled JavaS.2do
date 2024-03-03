@@ -1,0 +1,12 @@
+I'm in need of a skilled JavaScript developer to create a dynamic and interactive calendar/agenda. 
+The primary function of this application is to allow selection of specific hour slots across any selected days. 
+The calendar should display versatile views for day, week, and month.
+
+Key Features:
+- Scheduling hours should be displayed in a grid format, catering for group schedules.
+- Incorporate event creation within the calendar for organization and efficiency.
+- Ensure the calendar has dynamic and interactive UI, focusing on a smooth user experience.
+- As the calendar will be populated via SQL it should be able to receive a group of schedules 
+  and show those after rendering the calendar or fill those previously to render the calendar.
+- The calendar should be shown in mobile, tablets or laptops, it show should be responsive.
+- The calendar should be easy to implement (import into any page) and easy to use.
