@@ -1,6 +1,45 @@
-.aGrid {
+._a-p1 {
+	padding: 5px;
+}
+
+._a-m1 {
+	margin: 5px;
+}
+._a-m3 {
+	margin: 15px;
+}
+._a-mb3 {
+	margin-bottom: 15px;
+}
+
+._a-grid {
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
 	grid-column-gap: 5px;
 	grid-row-gap: 5px;
+}
+
+._a-flex {
+	display: flex;
+}
+._a-justify-between {
+	justify-content: space-between;
+}
+
+._a-btn {
+	display: inline-flex; padding-left: 15px; padding-right: 15px; height: 30px; line-height: 30px;
+	background-color: rgba(46, 51, 56, 0.05); color: rgb(57, 68, 71); cursor: pointer;
+}
+._a-btn:hover {
+	background-color:rgba(46, 51, 56, 0.073);
+}
+._a-btn._a-btn-primary {
+	background-color: rgba(23, 139, 178, 0.16); color: rgb(23, 139, 178)
+}
+._a-btn._a-btn-primary:hover {
+	background-color:rgba(23, 139, 178, 0.216)
+}
+._a-btn._a-btn-primary._a-btn-slctd,
+._a-btn._a-btn-primary._a-btn-slctd:hover {
+	color: rgb(218, 236, 243); background-color: rgb(23, 139, 178)
 }
