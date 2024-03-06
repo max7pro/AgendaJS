@@ -6,7 +6,7 @@ class AgendaJS {
 
 	constructor (rootSelector, opts = {}) {
 		this.#loadJSLibs( () => 
-			this.#initialize(rootSelector, opts)
+			this.#initializeApp(rootSelector, opts)
 		)
 	}
 
@@ -29,7 +29,7 @@ class AgendaJS {
 		callback()
 	}
 
-	#initialize = (rootSelector, opts) => {
+	#initializeApp = (rootSelector, opts) => {
 
 		this.#options = {
 			...this.#options,
@@ -40,39 +40,57 @@ class AgendaJS {
 			weekStart: this.#options.firstIsSunday ? 0 : 1
 		})
 
-		this.agendaRoot = this._r( 'div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector) )
+		this.agendaRoot = this._r('div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector))
+		this.#initializeToolbar()
+		this.aGrid = this._r('div', ['_a-grid', '_a-grid-view-month'], this.agendaRoot)
 
 		this.log([this.agendaRoot, this.#options], 'Initialize AgendaJS')
 		
-		this.rndrMonthView( dayjs() )
+		// this.monthView()
+		document.querySelector('[data-view="month"]').click()
 	}
 	
-	rndrToolbar = (cntnt) => {
-		const agendaToolbar = this._r('div', ['_a-toolbar', '_a-flex', '_a-justify-between', '_a-mb3'], this.agendaRoot)
-
-		const template = `
+	#initializeToolbar = () => {
+		const toolbar = this._r('div', ['_a-toolbar', '_a-flex', '_a-justify-between', '_a-mb3'], this.agendaRoot)
+		toolbar.innerHTML = `
 			<div>
 				<span class="_a-btn _a-btn-prev"><</span>
 				<span class="_a-btn _a-btn-next">></span>
 				<span class="_a-btn _a-btn-now">Today</span>
 			</div>
-			<div>${cntnt}</div>
-			<div>
-				<span class="_a-btn _a-btn-primary _a-btn-slctd">Month</span>
-				<span class="_a-btn _a-btn-primary">Week</span>
-				<span class="_a-btn _a-btn-primary">Day</span>
+			<div class="_a-heading"></div>
+			<div class="_a-view-switch">
+				<span data-view="month" class="_a-btn _a-btn-primary _a-btn-slctd">Month</span>
+				<span data-view="week" class="_a-btn _a-btn-primary">Week</span>
+				<span data-view="day" class="_a-btn _a-btn-primary">Day</span>
 			</div>
 		`
+		toolbar.querySelector('._a-view-switch').onclick = ({target}) => {
 
-		agendaToolbar.innerHTML = template
+			toolbar.querySelectorAll('._a-view-switch ._a-btn').forEach( btn => btn.classList.remove('_a-btn-slctd') )
+			target.classList.add('_a-btn-slctd')
+
+			this.agendaRoot.dataset.view = target.dataset.view
+			
+			this[`${ target.dataset.view }View`]()
+		}
+
+		document.querySelector('._a-btn-now').onclick = () => this[`${ this.agendaRoot.dataset.view }View`]()
+
+		// document.querySelector('._a-btn-prev').onclick = () =>
+		// 	this[`${ this.agendaRoot.dataset.view }View`]( time.subtract(1, this.agendaRoot.dataset.view) )
+		// document.querySelector('._a-btn-next').onclick = () =>
+		// 	this[`${ this.agendaRoot.dataset.view }View`]( time.add(1, this.agendaRoot.dataset.view) )
+		
 	}
 
-	rndrMonthView = (time) => {
+	setTlbrHeading = (str) => document.querySelector('._a-heading').innerText = str
 
-		this.agendaRoot.innerHTML = null
-
-		this.rndrToolbar(time.format('MMMM YYYY'))
-		const aGrid = this._r('div', ['_a-grid', '_a-grid-view-month'], this.agendaRoot)
+	monthView = (time = dayjs()) => {
+		
+		this.setTlbrHeading(time.format('MMMM YYYY'))
+		
+		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
 
 		let lastDateCM = time.daysInMonth(),
 			pMDaysTotal = time.startOf('month').startOf('week').diff(time.startOf('month'), 'day'),
@@ -89,7 +107,7 @@ class AgendaJS {
 			
 		}
 		
-		dates = dates.concat(this._range(1, lastDateCM))
+		dates = dates.concat( this._range(1, lastDateCM) )
 		
 		if (nMDaysTotal) {
 			let lastDateNM = time.endOf('month').endOf('week').get('date')
@@ -102,19 +120,33 @@ class AgendaJS {
 		this.log([days, dates], 'Month grid')
 
 		days.forEach(d => {
-			let cell = this._r('div', ['_a-cell', '_a-cell-day'], aGrid)
-			cell.innerText = d
+			this._r('div', ['_a-cell', '_a-cell-day'], this.aGrid).innerText = d
 		})
 
 		dates.forEach(d => {
-			let cell = this._r('div', ['_a-cell', '_a-cell-date'], aGrid)
-			cell.innerText = d
+			this._r('div', ['_a-cell', '_a-cell-date'], this.aGrid).innerText = d
 		})
 
-		document.querySelector('._a-btn-prev').onclick = () => this.rndrMonthView( time.subtract(1, 'month') )
-		document.querySelector('._a-btn-next').onclick = () => this.rndrMonthView( time.add(1, 'month') )
-		document.querySelector('._a-btn-now').onclick = () => this.rndrMonthView( dayjs() )
+		document.querySelector('._a-btn-prev').onclick = () => this.monthView( time.subtract(1, 'month') )
+		document.querySelector('._a-btn-next').onclick = () => this.monthView( time.add(1, 'month') )
 
+	}
+
+	weekView = (time = dayjs()) => {
+
+		this.setTlbrHeading(time.format('d') )
+		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
+
+		let week = time.week()
+			// weekStart = week.startOf('week'),
+			// weekEnd = week.endOff('week')
+
+		console.log('wwe', week);
+	}
+
+	dayView = (time = dayjs()) => {
+		this.setTlbrHeading( time.format('MMMM D, YYYY') )
+		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
 	}
 
 	_range = (from, to) => Array.from(
