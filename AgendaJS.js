@@ -1,7 +1,7 @@
 class AgendaJS {
 	#options = {
 		firstIsSunday: false, // true, false
-		defaultView: 'month',  // month, week, day
+		defaultView: 'week',  // month, week, day
 		logToConsole: true	// true, false
 	}
 	#view
@@ -53,16 +53,6 @@ class AgendaJS {
 
 		this.log([[this.agendaRoot], this.#options], 'Initialize AgendaJS')
 	}
-
-	#preRender = ({view, time} = {}) => {
-
-		this.#view = view ?? this.#view
-		this.#dateTimePos = time ?? this.#dateTimePos
-
-		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
-
-		this[`${this.#view}View`](this.#dateTimePos)
-	}
 	
 	#initializeToolbar = () => {
 
@@ -75,22 +65,30 @@ class AgendaJS {
 			</div>
 			<div class="_a-heading"></div>
 			<div class="_a-view-switch">
-				<span data-view="month" class="_a-btn _a-btn-primary _a-btn-slctd">Month</span>
+				<span data-view="month" class="_a-btn _a-btn-primary">Month</span>
 				<span data-view="week" class="_a-btn _a-btn-primary">Week</span>
 				<span data-view="day" class="_a-btn _a-btn-primary">Day</span>
 			</div>
 		`
+		toolbar.querySelector(`[data-view="${ this.#options.defaultView }"]`).classList.add('_a-btn-slctd')
 		toolbar.querySelector('._a-view-switch').onclick = ({target}) => {
 			toolbar.querySelectorAll('._a-view-switch ._a-btn').forEach( btn => btn.classList.remove('_a-btn-slctd') )
 			target.classList.add('_a-btn-slctd')
-			
 			this.#preRender({ view: target.dataset.view })
 		}
-
 		document.querySelector('._a-btn-now').onclick = () => this.#preRender({ time: dayjs() }) 
 		document.querySelector('._a-btn-prev').onclick = () => this.#preRender({ time: this.#dateTimePos.subtract(1, this.#view) })
 		document.querySelector('._a-btn-next').onclick = () => this.#preRender({ time: this.#dateTimePos.add(1, this.#view) })
-		
+	}
+
+	#preRender = ({view, time} = {}) => {
+
+		this.#view = view ?? this.#view
+		this.#dateTimePos = time ?? this.#dateTimePos
+
+		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
+
+		this[`${ this.#view }View`](this.#dateTimePos)
 	}
 
 	setTlbrHeading = (str) => this.agendaRoot.querySelector('._a-heading').innerText = str
