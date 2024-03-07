@@ -4,6 +4,9 @@ class AgendaJS {
 		firstIsSunday: false
 	}
 
+	#dateTimePos
+	#view = 'month'
+
 	constructor (rootSelector, opts = {}) {
 		this.#loadJSLibs( () => 
 			this.#initializeApp(rootSelector, opts)
@@ -14,7 +17,7 @@ class AgendaJS {
 
 		const
 			plugins = [
-				'weekOfYear', 'utc', 'timezone', 'localeData', 'updateLocale'
+				'timezone', 'localeData', 'updateLocale'
 			],
 			imports = [
 				'https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js',
@@ -42,15 +45,18 @@ class AgendaJS {
 
 		this.agendaRoot = this._r('div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector))
 		this.#initializeToolbar()
-		this.aGrid = this._r('div', ['_a-grid', '_a-grid-view-month'], this.agendaRoot)
+		this.aGrid = this._r('div', ['_a-grid'], this.agendaRoot)
+		
+		this.#preRender({
+			view: 'month',
+			time: dayjs()
+		})
 
 		this.log([this.agendaRoot, this.#options], 'Initialize AgendaJS')
-		
-		// this.monthView()
-		document.querySelector('[data-view="month"]').click()
 	}
 	
 	#initializeToolbar = () => {
+
 		const toolbar = this._r('div', ['_a-toolbar', '_a-flex', '_a-justify-between', '_a-mb3'], this.agendaRoot)
 		toolbar.innerHTML = `
 			<div>
@@ -66,25 +72,27 @@ class AgendaJS {
 			</div>
 		`
 		toolbar.querySelector('._a-view-switch').onclick = ({target}) => {
-
 			toolbar.querySelectorAll('._a-view-switch ._a-btn').forEach( btn => btn.classList.remove('_a-btn-slctd') )
 			target.classList.add('_a-btn-slctd')
-
-			this.agendaRoot.dataset.view = target.dataset.view
 			
-			this[`${ target.dataset.view }View`]()
+			this.#preRender({ view: target.dataset.view })
 		}
 
-		document.querySelector('._a-btn-now').onclick = () => this[`${ this.agendaRoot.dataset.view }View`]()
-
-		// document.querySelector('._a-btn-prev').onclick = () =>
-		// 	this[`${ this.agendaRoot.dataset.view }View`]( time.subtract(1, this.agendaRoot.dataset.view) )
-		// document.querySelector('._a-btn-next').onclick = () =>
-		// 	this[`${ this.agendaRoot.dataset.view }View`]( time.add(1, this.agendaRoot.dataset.view) )
+		document.querySelector('._a-btn-now').onclick = () => this.#preRender({ time: dayjs() }) 
+		document.querySelector('._a-btn-prev').onclick = () => this.#preRender({ time: this.#dateTimePos.subtract(1, this.#view) })
+		document.querySelector('._a-btn-next').onclick = () => this.#preRender({ time: this.#dateTimePos.add(1, this.#view) })
 		
 	}
 
-	setTlbrHeading = (str) => document.querySelector('._a-heading').innerText = str
+	#preRender = ({view, time} = {}) => {
+		
+		this.#dateTimePos = time ?? this.#dateTimePos
+		this.#view = view ?? this.#view
+		
+		this[`${this.#view}View`](this.#dateTimePos)
+	}
+
+	setTlbrHeading = (str) => this.agendaRoot.querySelector('._a-heading').innerText = str
 
 	monthView = (time = dayjs()) => {
 		
@@ -92,56 +100,77 @@ class AgendaJS {
 		
 		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
 
-		let lastDateCM = time.daysInMonth(),
-			pMDaysTotal = time.startOf('month').startOf('week').diff(time.startOf('month'), 'day'),
-			nMDaysTotal = time.endOf('month').endOf('week').diff(time.endOf('month'), 'day')
+		let monthEndDate = time.daysInMonth(),
+			prevMonthDaysLenght = time.startOf('month').startOf('week').diff( time.startOf('month'), 'day' ),
+			nextMonthDaysLenght = time.endOf('month').endOf('week').diff( time.endOf('month'), 'day' )
 						
 		let dates = []
 
-		if (pMDaysTotal) {
-			
-			let firstDatePM = time.startOf('month').startOf('week').get('date'),
-				lastDatePM = time.startOf('month').startOf('week').daysInMonth()
-
-			dates = dates.concat( this._range(firstDatePM, lastDatePM) )
-			
+		if (prevMonthDaysLenght) {
+			let prevMonthStartDate = time.startOf('month').startOf('week').get('date'),
+				prevMonthEndDate = time.startOf('month').startOf('week').daysInMonth()
+			dates = dates.concat( this._range(prevMonthStartDate, prevMonthEndDate) )
 		}
 		
-		dates = dates.concat( this._range(1, lastDateCM) )
+		dates = dates.concat( this._range(1, monthEndDate) )
 		
-		if (nMDaysTotal) {
-			let lastDateNM = time.endOf('month').endOf('week').get('date')
-			dates = dates.concat( this._range(1, lastDateNM) )
+		if (nextMonthDaysLenght) {
+			let nextMonthEndDate = time.endOf('month').endOf('week').get('date')
+			dates = dates.concat( this._range(1, nextMonthEndDate) )
 		}
 		
 		let days = this.#options.firstIsSunday ?
 				dayjs.weekdaysShort() : dayjs.weekdaysShort().slice(-6).concat( dayjs.weekdaysShort().shift() )
 
+		days.forEach( d => this._r('div', ['_a-cell', '_a-cell-day'], this.aGrid).innerText = d )
+		dates.forEach(d => this._r('div', ['_a-cell', '_a-cell-date'], this.aGrid).innerText = d)
+
 		this.log([days, dates], 'Month grid')
-
-		days.forEach(d => {
-			this._r('div', ['_a-cell', '_a-cell-day'], this.aGrid).innerText = d
-		})
-
-		dates.forEach(d => {
-			this._r('div', ['_a-cell', '_a-cell-date'], this.aGrid).innerText = d
-		})
-
-		document.querySelector('._a-btn-prev').onclick = () => this.monthView( time.subtract(1, 'month') )
-		document.querySelector('._a-btn-next').onclick = () => this.monthView( time.add(1, 'month') )
 
 	}
 
 	weekView = (time = dayjs()) => {
 
-		this.setTlbrHeading(time.format('d') )
 		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
+		
+		time = time.startOf('week') 
+			
+		let weekStart = time,
+			weekEnd = time.endOf('week'),
+			heading = weekStart.format('MMMM D, YYYY') + ' - ' + weekEnd.format('MMMM D, YYYY'),
+			isMonthBoard = weekStart.get('month') != weekEnd.get('month')
+		
+		this.setTlbrHeading(heading)
+		
+		let hCells = []
 
-		let week = time.week()
-			// weekStart = week.startOf('week'),
-			// weekEnd = week.endOff('week')
+		if ( isMonthBoard ) {
+									
+			this._range(weekStart.get('date'), weekStart.endOf('month').get('date')).forEach( d => {
+				hCells.push({
+					date: d,
+					month: weekStart.get('month'),
+					year: weekStart.get('year')
+				})
+			})
 
-		console.log('wwe', week);
+		} 
+
+		this._range(isMonthBoard ? 1 : weekStart.get('date'), weekEnd.get('date') ).forEach( d => {
+			hCells.push({
+				date: d,
+				month: weekEnd.get('month'),
+				year: weekEnd.get('year')
+			})
+		})
+
+		hCells.forEach( d => {
+			let a = dayjs().year(d.year).month(d.month).date(d.date).format('ddd M/D')
+			this._r('div', ['_a-cell', '_a-cell-weekday'], this.aGrid).innerText = a
+		})
+
+		this.log(hCells, 'Week grid')
+
 	}
 
 	dayView = (time = dayjs()) => {
