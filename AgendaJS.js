@@ -66,7 +66,7 @@ class AgendaJS {
 				<span class="_a-btn _a-btn-now">Today</span>
 			</div>
 			<div class="_a-heading"></div>
-			<div class="_a-view-switch">
+			<div class="_a-view-switch _a-flex">
 				<span data-view="month" class="_a-btn _a-btn-primary">Month</span>
 				<span data-view="week" class="_a-btn _a-btn-primary">Week</span>
 				<span data-view="day" class="_a-btn _a-btn-primary">Day</span>
@@ -114,7 +114,7 @@ class AgendaJS {
 		while (cells.length <= diff) 
 			cells.push( start.add(cells.length, 'day') )
 				
-		hCells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d)
+		hCells.forEach(d => this._r('div', ['_a-cell', '_a-cell-label'], this.aGrid).innerText = d)
 		cells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.date())
 	
 		this.log([hCells, cells], 'Month grid')
@@ -137,27 +137,34 @@ class AgendaJS {
 		this.setHeading(heading)
 
 		while (hCells.length <= diff)
-			hCells.push(start.add(hCells.length, 'day'))
+			hCells.push( start.add(hCells.length, 'day') )
 		
 		let h = listStart
-		cells.push( h.format('h:mm a') )
-		while (h.hour() < listEnd.hour() ) {
+		cells.push(h)
+		while ( h.hour() < listEnd.hour() ) {
 			h = h.add(30, 'minute')
-			cells.push( h.format('h:mm a') )
+			cells.push(h)
 		}
 
 		this._r('div', ['_a-cell'], this.aGrid)
-		hCells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.format('ddd M/D'))
+		hCells.forEach(d => this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = d.format('ddd M/D'))
 
-		this._r('div', ['_a-cell'], this.aGrid).innerText = 'all-day'
+		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = 'all-day'
 		for (let cell = 1; cell <= hCells.length; cell++) {
 			this._r('div', ['_a-cell'], this.aGrid)
 		}
 
-		cells.forEach( t => {
-			this._r('div', ['_a-cell'], this.aGrid).innerText = t
+		cells.forEach(t => {
+			
+			let halfHour = t.minute() ? true : false
+			console.log(t.minute(), halfHour);
+			this._r(
+				'div',
+				'_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''),
+				this.aGrid
+			).innerText = t.format('h:mm a')
 			for (let cell = 1; cell <= hCells.length; cell++) {
-				this._r('div', ['_a-cell'], this.aGrid)
+				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 			}
 		})
 
