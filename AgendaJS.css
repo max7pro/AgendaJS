@@ -14,9 +14,14 @@
 
 ._a-grid {
 	display: grid;
-	grid-template-columns: repeat(7, 1fr);
 	grid-column-gap: 5px;
 	grid-row-gap: 5px;
+}
+._a-grid._a-grid-month {
+	grid-template-columns: repeat(7, 1fr);
+}
+._a-grid._a-grid-week {
+	grid-template-columns: 80px repeat(7, 1fr);
 }
 
 ._a-flex {
@@ -34,12 +39,12 @@
 	background-color:rgba(46, 51, 56, 0.073);
 }
 ._a-btn._a-btn-primary {
-	background-color: rgba(23, 139, 178, 0.16); color: rgb(23, 139, 178)
+	background-color: rgba(23, 139, 178, 0.16); color: rgb(23, 139, 178);
 }
 ._a-btn._a-btn-primary:hover {
-	background-color:rgba(23, 139, 178, 0.216)
+	background-color:rgba(23, 139, 178, 0.216);
 }
 ._a-btn._a-btn-primary._a-btn-slctd,
 ._a-btn._a-btn-primary._a-btn-slctd:hover {
-	color: rgb(218, 236, 243); background-color: rgb(23, 139, 178)
+	color: rgb(218, 236, 243); background-color: rgb(23, 139, 178);
 }

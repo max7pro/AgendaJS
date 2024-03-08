@@ -1,8 +1,10 @@
 class AgendaJS {
 	#options = {
-		firstIsSunday: false, // true, false
 		defaultView: 'week',  // month, week, day
-		logToConsole: true	// true, false
+		firstIsSunday: false, // true, false
+		dayStartAM: 6,
+		dayEndPM: 9,
+		logToConsole: true,	// true, false
 	}
 	#view
 	#dateTimePos
@@ -17,7 +19,7 @@ class AgendaJS {
 
 		const
 			plugins = [
-				'timezone', 'localeData', 'updateLocale'
+				'timezone', 'localeData', 'updateLocale', 'advancedFormat' 
 			],
 			imports = [
 				'https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js',
@@ -26,7 +28,7 @@ class AgendaJS {
 		
 		for (const url of imports) await import(url)
 		plugins.forEach( p => dayjs.extend( window[`dayjs_plugin_${ p }`] ) )
-			
+
 		this.log(['Timezone: ' + dayjs.tz.guess(), 'Locale: ' + dayjs.locale()], 'Initialize dayJS')
 
 		callback()
@@ -43,15 +45,15 @@ class AgendaJS {
 			weekStart: this.#options.firstIsSunday ? 0 : 1
 		})
 		this.#view = this.#options.defaultView
-		this.#dateTimePos = dayjs()
+		this.#dateTimePos = dayjs().startOf('D')
 
 		this.agendaRoot = this._r('div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector))
 		this.#initializeToolbar()
 		this.aGrid = this._r('div', ['_a-grid'], this.agendaRoot)
+
+		this.log([[this.agendaRoot], this.#options, this.#dateTimePos], 'Initialize AgendaJS')
 		
 		this.#preRender()
-
-		this.log([[this.agendaRoot], this.#options], 'Initialize AgendaJS')
 	}
 	
 	#initializeToolbar = () => {
@@ -88,84 +90,83 @@ class AgendaJS {
 
 		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
 
+		this.aGrid.className = `_a-grid _a-grid-${ this.#view }`
+
+		this.log([this.#view, this.#dateTimePos.format('ddd, MMMM D, YYYY HH:mm A')], 'Prerender')
+
 		this[`${ this.#view }View`](this.#dateTimePos)
 	}
 
-	setTlbrHeading = (str) => this.agendaRoot.querySelector('._a-heading').innerText = str
-
+	setHeading = (str) => this.agendaRoot.querySelector('._a-heading').innerText = str
+	
 	monthView = (time) => {
 		
-		this.setTlbrHeading(time.format('MMMM YYYY'))
-		
-		let monthEndDate = time.daysInMonth(),
-			prevMonthDaysLenght = time.startOf('month').startOf('week').diff( time.startOf('month'), 'day' ),
-			nextMonthDaysLenght = time.endOf('month').endOf('week').diff( time.endOf('month'), 'day' ),
-			days = this.#options.firstIsSunday ?
+		this.setHeading( time.format('MMMM YYYY') )
+				
+		let start = time.startOf('month').startOf('week'),
+			end = time.endOf('month').endOf('week'),
+			diff = end.diff(start, 'day'),
+			cells = [],
+			hCells = this.#options.firstIsSunday ?
 				dayjs.weekdaysShort() :
-				dayjs.weekdaysShort().slice(-6).concat( dayjs.weekdaysShort().shift() ),
-			dates = []
-						
-		if (prevMonthDaysLenght) {
-			let prevMonthStartDate = time.startOf('month').startOf('week').get('date'),
-				prevMonthEndDate = time.startOf('month').startOf('week').daysInMonth()
-			dates = dates.concat( this._range(prevMonthStartDate, prevMonthEndDate) )
-		}
-		
-		dates = dates.concat( this._range(1, monthEndDate) )
-		
-		if (nextMonthDaysLenght) {
-			let nextMonthEndDate = time.endOf('month').endOf('week').get('date')
-			dates = dates.concat( this._range(1, nextMonthEndDate) )
-		}
-		
-		days.forEach( d => this._r('div', ['_a-cell', '_a-cell-day'], this.aGrid).innerText = d )
-		dates.forEach(d => this._r('div', ['_a-cell', '_a-cell-date'], this.aGrid).innerText = d)
+				dayjs.weekdaysShort().slice(-6).concat( dayjs.weekdaysShort().shift() )
 
-		this.log([days, dates], 'Month grid')
+		while (cells.length <= diff) 
+			cells.push( start.add(cells.length, 'day') )
+				
+		hCells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d)
+		cells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.date())
+	
+		this.log([hCells, cells], 'Month grid')
 
 	}
 
 	weekView = (time) => {
-		
-		time = time.startOf('week') 
-			
-		let weekStart = time,
-			weekEnd = time.endOf('week'),
-			heading = weekStart.format('MMMM D, YYYY') + ' - ' + weekEnd.format('MMMM D, YYYY'),
-			isMonthBoard = weekStart.get('month') != weekEnd.get('month'),
-			hCells = []
-		
-		this.setTlbrHeading(heading)
-		
-		if ( isMonthBoard ) {					
-			this._range( weekStart.get('date'), weekStart.endOf('month').get('date') ).forEach( d => {
-				hCells.push({
-					date: d,
-					month: weekStart.get('month'),
-					year: weekStart.get('year')
-				})
-			})
-		} 
+				
+		let start = time.startOf('week'),
+			end = time.endOf('week'),
+			diff = end.diff(start, 'day'),
+			hCells = [],
 
-		this._range( isMonthBoard ? 1 : weekStart.get('date'), weekEnd.get('date') ).forEach( d => {
-			hCells.push({
-				date: d,
-				month: weekEnd.get('month'),
-				year: weekEnd.get('year')
-			})
+			listStart = dayjs(`1/1/1 ${ this.#options.dayStartAM }:00 AM`),
+			listEnd = dayjs(`1/1/1 ${ this.#options.dayEndPM }:00 PM`),
+			cells = [],
+
+			heading = start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY')
+		
+		this.setHeading(heading)
+
+		while (hCells.length <= diff)
+			hCells.push(start.add(hCells.length, 'day'))
+		
+		let h = listStart
+		cells.push( h.format('h:mm a') )
+		while (h.hour() < listEnd.hour() ) {
+			h = h.add(30, 'minute')
+			cells.push( h.format('h:mm a') )
+		}
+
+		this._r('div', ['_a-cell'], this.aGrid)
+		hCells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.format('ddd M/D'))
+
+		this._r('div', ['_a-cell'], this.aGrid).innerText = 'all-day'
+		for (let cell = 1; cell <= hCells.length; cell++) {
+			this._r('div', ['_a-cell'], this.aGrid)
+		}
+
+		cells.forEach( t => {
+			this._r('div', ['_a-cell'], this.aGrid).innerText = t
+			for (let cell = 1; cell <= hCells.length; cell++) {
+				this._r('div', ['_a-cell'], this.aGrid)
+			}
 		})
 
-		hCells.forEach( d => {
-			let a = dayjs().year(d.year).month(d.month).date(d.date).format('ddd M/D')
-			this._r('div', ['_a-cell', '_a-cell-weekday'], this.aGrid).innerText = a
-		})
-
-		this.log(hCells, 'Week grid')
+		this.log([hCells, cells], 'Week grid')
 
 	}
 
 	dayView = (time = dayjs()) => {
-		this.setTlbrHeading( time.format('MMMM D, YYYY') )
+		this.setHeading( time.format('MMMM D, YYYY') )
 		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
 	}
 	_range = (from, to) => Array.from(
@@ -181,13 +182,6 @@ class AgendaJS {
 		if (!this.#options.logToConsole) return
 		console.group(`${ h }:`)
 		Array.isArray(c) ? console.log(...c) : console.log(c)
-		// if (Array.isArray(c)) {
-		// 	c.forEach(val => {
-		// 		(typeof val === 'object') ? console.dir(val) : console.log(val)
-		// 	})
-		// } else {
-		// 	console.log(c)
-		// }
 		console.groupEnd()
 	}
 	
