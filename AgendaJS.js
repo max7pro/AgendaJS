@@ -1,6 +1,6 @@
 class AgendaJS {
 	#options = {
-		defaultView: 'week',  // month, week, day
+		defaultView: 'month',  // month, week, day
 		firstIsSunday: false, // true, false
 		dayStartAM: 6,
 		dayEndPM: 9,
@@ -100,12 +100,11 @@ class AgendaJS {
 	setHeading = (str) => this.agendaRoot.querySelector('._a-heading').innerText = str
 	
 	monthView = (time) => {
-		
-		this.setHeading( time.format('MMMM YYYY') )
-				
+						
 		let start = time.startOf('month').startOf('week'),
 			end = time.endOf('month').endOf('week'),
 			diff = end.diff(start, 'day'),
+			heading = time.format('MMMM YYYY'),
 			cells = [],
 			hCells = this.#options.firstIsSunday ?
 				dayjs.weekdaysShort() :
@@ -113,9 +112,11 @@ class AgendaJS {
 
 		while (cells.length <= diff) 
 			cells.push( start.add(cells.length, 'day') )
+		
+		this.setHeading(heading)
 				
-		hCells.forEach(d => this._r('div', ['_a-cell', '_a-cell-label'], this.aGrid).innerText = d)
-		cells.forEach(d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.date())
+		hCells.forEach( d => this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = d )
+		cells.forEach( d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.date() )
 	
 		this.log([hCells, cells], 'Month grid')
 
@@ -127,55 +128,78 @@ class AgendaJS {
 			end = time.endOf('week'),
 			diff = end.diff(start, 'day'),
 			hCells = [],
-
-			listStart = dayjs(`1/1/1 ${ this.#options.dayStartAM }:00 AM`),
-			listEnd = dayjs(`1/1/1 ${ this.#options.dayEndPM }:00 PM`),
+			rowStart = dayjs(`1/1/1 ${ this.#options.dayStartAM }:00 AM`),
+			rowEnd = dayjs(`1/1/1 ${ this.#options.dayEndPM }:00 PM`),
 			cells = [],
-
 			heading = start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY')
 		
-		this.setHeading(heading)
-
 		while (hCells.length <= diff)
 			hCells.push( start.add(hCells.length, 'day') )
 		
-		let h = listStart
-		cells.push(h)
-		while ( h.hour() < listEnd.hour() ) {
-			h = h.add(30, 'minute')
-			cells.push(h)
+		let rowTime = rowStart
+		cells.push(rowTime)
+		while ( rowTime.hour() < rowEnd.hour() ) {
+			rowTime = rowTime.add(30, 'minute')
+			cells.push(rowTime)
 		}
+
+		this.setHeading(heading)
 
 		this._r('div', ['_a-cell'], this.aGrid)
-		hCells.forEach(d => this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = d.format('ddd M/D'))
+		hCells.forEach( label =>
+			this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = label.format('ddd D')
+		)
 
 		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = 'all-day'
-		for (let cell = 1; cell <= hCells.length; cell++) {
-			this._r('div', ['_a-cell'], this.aGrid)
-		}
-
-		cells.forEach(t => {
-			
-			let halfHour = t.minute() ? true : false
-			console.log(t.minute(), halfHour);
-			this._r(
-				'div',
-				'_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''),
-				this.aGrid
-			).innerText = t.format('h:mm a')
-			for (let cell = 1; cell <= hCells.length; cell++) {
+		for (let cell = 1; cell <= hCells.length; cell++)
+				this._r('div', ['_a-cell'], this.aGrid)
+		
+		cells.forEach( label => {
+			let halfHour = label.minute() ? true : false
+			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+				.innerText = label.format('h:mm a')
+			for (let cell = 1; cell <= hCells.length; cell++)
 				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
-			}
 		})
 
 		this.log([hCells, cells], 'Week grid')
 
 	}
 
-	dayView = (time = dayjs()) => {
-		this.setHeading( time.format('MMMM D, YYYY') )
-		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
+	dayView = (time) => {
+
+		let rowStart = dayjs(`1/1/1 ${ this.#options.dayStartAM }:00 AM`),
+			rowEnd = dayjs(`1/1/1 ${ this.#options.dayEndPM }:00 PM`),
+			heading = time.format('MMMM D, YYYY'),
+			hCell = time.format('dddd'),
+			cells = []
+	
+		let rowTime = rowStart
+		cells.push(rowTime)
+		while ( rowTime.hour() < rowEnd.hour() ) {
+			rowTime = rowTime.add(30, 'minute')
+			cells.push(rowTime)
+		}
+
+		this.setHeading(heading)
+
+		this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = hCell
+		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = 'all-day'
+		for (let cell = 1; cell <= dayjs.weekdays().length; cell++)
+			this._r('div', ['_a-cell'], this.aGrid)
+
+		cells.forEach( label => {
+			let halfHour = label.minute() ? true : false
+			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+				.innerText = label.format('h:mm a')
+			for (let cell = 1; cell <= dayjs.weekdays().length; cell++)
+				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+		})
+
+		this.log([cells], 'Day grid')
+
 	}
+
 	_range = (from, to) => Array.from(
 			{ length: (to - from) + 1 },
 			(_, i) => from + i
