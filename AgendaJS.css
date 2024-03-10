@@ -68,7 +68,7 @@
 	grid-template-columns: auto repeat(7, 1fr);
 }
 ._a-grid._a-grid-day {
-	grid-template-columns: 1fr 10fr;
+	grid-template-columns: auto 1fr;
 }
 
 ._a-cell {
@@ -89,7 +89,7 @@
 	text-align: right; cursor: pointer;
 }
 
-._a-grid._a-grid-week ._a-cell {
+._a-grid._a-grid-week ._a-cell[data-ts] {
 	cursor: pointer;
 }
 
@@ -100,9 +100,7 @@
 ._a-cell._a-cell-half-hour {
 	border-top: 1px dotted #e1e1e1; color: transparent;
 }
-._a-cell._a-cell-half-hour:hover {
+._a-cell._a-cell-half-hour:hover, 
+._a-cell._a-cell-half-hour._a-cell-hover {
 	color: #6f6f6f;
 }
-
-
-

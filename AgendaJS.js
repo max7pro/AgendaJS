@@ -32,7 +32,7 @@ class AgendaJS {
 		for (const url of imports) await import(url)
 		plugins.forEach( p => dayjs.extend( window[`dayjs_plugin_${ p }`] ) )
 
-		this.log(['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'Initialize dayJS')
+		this.#log(['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'Initialize dayJS')
 
 		callback()
 	}
@@ -50,18 +50,18 @@ class AgendaJS {
 		this.#view = this.#options.defaultView
 		this.#dateTimePos = dayjs().startOf('D')
 
-		this.agendaRoot = this._r('div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector))
+		this.agendaRoot = this.#_rndr('div', ['_a-canvas', '_a-m3'], document.querySelector(rootSelector))
 		this.#initializeToolbar()
-		this.aGrid = this._r('div', ['_a-grid'], this.agendaRoot)
+		this.aGrid = this.#_rndr('div', ['_a-grid'], this.agendaRoot)
 
-		this.log([[this.agendaRoot], this.#options, this.#dateTimePos], 'Initialize AgendaJS')
+		this.#log([[this.agendaRoot], this.#options, this.#dateTimePos], 'Initialize AgendaJS')
 		
 		this.#preRender()
 	}
 	
 	#initializeToolbar = () => {
 
-		const toolbar = this._r('div', ['_a-toolbar', '_a-flex', '_a-justify-between', '_a-mb3'], this.agendaRoot)
+		const toolbar = this.#_rndr('div', ['_a-toolbar', '_a-flex', '_a-justify-between', '_a-mb3'], this.agendaRoot)
 		toolbar.innerHTML = `
 			<div>
 				<span class="_a-btn _a-btn-prev"><</span>
@@ -92,7 +92,7 @@ class AgendaJS {
 		document.querySelectorAll( '._a-view-switch ._a-btn' ).forEach( btn => btn.classList.remove( '_a-btn-slctd' ) )
 		document.querySelector( `[data-view="${ this.#view }"]` ).classList.add( '_a-btn-slctd' )
 
-		this.log( [ '[Time:] ' + this.#dateTimePos.format('ddd, MMMM D, YYYY HH:mm A'), '[View:] ' + this.#view ], 'Prerender')
+		this.#log( [ '[Time:] ' + this.#dateTimePos.format('ddd, MMMM D, YYYY HH:mm A'), '[View:] ' + this.#view ], 'Prerender')
 
 		this[`${ this.#view }View`](this.#dateTimePos)
 	}
@@ -116,16 +116,16 @@ class AgendaJS {
 		this.setHeading(heading)
 				
 		hCells.forEach( label =>
-			this._r('div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid).innerText = label
+			this.#_rndr('div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid).innerText = label
 		)
 		cells.forEach( obj => {
-			let cell = this._r( 'div', [ '_a-cell' ], this.aGrid )
+			let cell = this.#_rndr( 'div', [ '_a-cell' ], this.aGrid )
 			cell.innerText = obj.date()
 			cell.dataset.ts = obj.unix()
 			cell.onclick = () => this.#preRender({ time: obj, view: 'day' })
 		} )	
 			
-		this.log([hCells, cells], 'Month grid')
+		this.#log([hCells, cells], 'Month grid')
 
 	}
 
@@ -152,28 +152,33 @@ class AgendaJS {
 
 		this.setHeading(heading)
 
-		this._r('div', ['_a-cell'], this.aGrid)
+		this.#_rndr('div', ['_a-cell'], this.aGrid)
 		hCells.forEach( label =>
-			this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = label.format('ddd D')
+			this.#_rndr('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = label.format('ddd D')
 		)
 
-		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
+		this.#_rndr('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
 		for (let cell = 1; cell <= hCells.length; cell++)
-				this._r('div', ['_a-cell'], this.aGrid)
+				this.#_rndr('div', ['_a-cell'], this.aGrid)
 		
 		cells.forEach( obj => {
 			let halfHour = obj.minute() ? true : false
-			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+			this.#_rndr('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 				.innerText = obj.format('h:mm a')
 			for ( let day = 0; day < hCells.length; day++ ) {
 				console.log( obj.format( 'h:mm a' ), time);
-				let cell = this._r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
+				let cell = this.#_rndr( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
-				cell.onclick = () => this.#preRender({ time: hCells[day], view: 'day' })
+				cell.onclick = () => this.#preRender( { time: hCells[day], view: 'day' } )
+				cell.onmouseenter = () => 
+					this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-hover' )
+				
+				cell.onmouseleave = () => 
+					this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.remove('_a-cell-hover')
 			}
 		})
 
-		this.log([hCells, cells], 'Week grid')
+		this.#log([hCells, cells], 'Week grid')
 
 	}
 
@@ -194,32 +199,42 @@ class AgendaJS {
 
 		this.setHeading(heading)
 
-		this._r( 'div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid ).innerText = hCell
+		this.#_rndr( 'div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid ).innerText = hCell
 		
-		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
-		this._r('div', ['_a-cell'], this.aGrid)
+		this.#_rndr('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
+		this.#_rndr('div', ['_a-cell'], this.aGrid)
 
-		cells.forEach( label => {
-			let halfHour = label.minute() ? true : false
-			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
-				.innerText = label.format('h:mm a')
-			this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+		cells.forEach( obj => {
+			let halfHour = obj.minute() ? true : false
+			this.#_rndr('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+				.innerText = obj.format('h:mm a')
+			let cell = this.#_rndr( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
+			cell.onmouseenter = () => 
+				this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-hover' )
+			cell.onmouseleave = () => 
+				this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.remove('_a-cell-hover')
 		})
 
-		this.log([cells], 'Day grid')
+		this.#log([cells], 'Day grid')
 
 	}
 
-	_range = (from, to) => Array.from(
-			{ length: (to - from) + 1 },
-			(_, i) => from + i
-		)
-	_r = (tag, classes, parent) => {
+
+	#_rndr = (tag, classes, parent) => {
 		const el = document.createElement(tag)
 		Array.isArray(classes) ? el.classList.add(...classes) : el.classList = classes
 		return parent.appendChild(el)
 	}
-	log = (c, h = 'Log') => {
+	#_getPrvsSblngByCls = (element, className) => {
+		while (element) {
+			element = element.previousElementSibling;
+			if (element && element.classList.contains(className)) {
+				return element;
+			}
+		}
+		return null;
+	}
+	#log = (c, h = 'Log') => {
 		if (!this.#options.logToConsole) return
 		console.group(`${ h }:`)
 		Array.isArray(c) ? console.log(...c) : console.log(c)
