@@ -9,6 +9,11 @@ class AgendaJS {
 	}
 	#view
 	#dateTimePos
+	#eventsStorage = {}
+
+	#icons = {
+		'calendar-plus': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpY29uIGljb24tdGFibGVyIGljb24tdGFibGVyLWNhbGVuZGFyLXBsdXMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZT0iY3VycmVudENvbG9yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIHN0cm9rZT0ibm9uZSIgZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMi41IDIxaC02LjVhMiAyIDAgMCAxIC0yIC0ydi0xMmEyIDIgMCAwIDEgMiAtMmgxMmEyIDIgMCAwIDEgMiAydjUiIC8+PHBhdGggZD0iTTE2IDN2NCIgLz48cGF0aCBkPSJNOCAzdjQiIC8+PHBhdGggZD0iTTQgMTFoMTYiIC8+PHBhdGggZD0iTTE2IDE5aDYiIC8+PHBhdGggZD0iTTE5IDE2djYiIC8+PC9zdmc+'
+	}
 
 	constructor ( rootSelector, opts = {} ) {
 		this.#loadJSLibs( () => 
@@ -76,9 +81,9 @@ class AgendaJS {
 			</div>
 			`
 		toolbar.querySelector('._a-view-switch').onclick = ({target}) => { this.#preRender({ view: target.dataset.view }) }
-		document.querySelector('._a-btn-now').onclick = () => this.#preRender({ time: dayjs() }) 
-		document.querySelector('._a-btn-prev').onclick = () => this.#preRender({ time: this.#dateTimePos.subtract(1, this.#view) })
-		document.querySelector('._a-btn-next').onclick = () => this.#preRender({ time: this.#dateTimePos.add(1, this.#view) })
+		toolbar.querySelector('._a-btn-now').onclick = () => this.#preRender({ time: dayjs() }) 
+		toolbar.querySelector('._a-btn-prev').onclick = () => this.#preRender({ time: this.#dateTimePos.subtract(1, this.#view) })
+		toolbar.querySelector('._a-btn-next').onclick = () => this.#preRender({ time: this.#dateTimePos.add(1, this.#view) })
 	}
 
 	#preRender = ({view, time} = {}) => {
@@ -162,19 +167,23 @@ class AgendaJS {
 				this.#_rndr('div', ['_a-cell'], this.aGrid)
 		
 		cells.forEach( obj => {
-			let halfHour = obj.minute() ? true : false
+			const halfHour = obj.minute() ? true : false
 			this.#_rndr('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 				.innerText = obj.format('h:mm a')
 			for ( let day = 0; day < hCells.length; day++ ) {
 				console.log( obj.format( 'h:mm a' ), time);
 				let cell = this.#_rndr( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
-				cell.onclick = () => this.#preRender( { time: hCells[day], view: 'day' } )
-				cell.onmouseenter = () => 
-					this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-hover' )
+
+				let btnPlus = this.#_rndr( 'span', ['_a-cel-btn-plus'], cell )
+				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+				btnPlus.onclick = () => this.#createEvent( cell.dataset.ts )
 				
+				cell.onmouseenter = () => 
+					this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
 				cell.onmouseleave = () => 
-					this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.remove('_a-cell-hover')
+					this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.remove( '_a-cell-row-hover' )
+				cell.onclick = () => this.#preRender( { time: hCells[day], view: 'day' } )
 			}
 		})
 
@@ -205,30 +214,66 @@ class AgendaJS {
 		this.#_rndr('div', ['_a-cell'], this.aGrid)
 
 		cells.forEach( obj => {
-			let halfHour = obj.minute() ? true : false
+			const halfHour = obj.minute() ? true : false
 			this.#_rndr('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 				.innerText = obj.format('h:mm a')
 			let cell = this.#_rndr( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
+			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
+
+			let btnPlus = this.#_rndr( 'span', ['_a-cel-btn-plus'], cell )
+			btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+			btnPlus.onclick = () => this.#createEvent( cell.dataset.ts )
+
 			cell.onmouseenter = () => 
-				this.#_getPrvsSblngByCls( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-hover' )
+				this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.add('_a-cell-row-hover')
 			cell.onmouseleave = () => 
-				this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.remove('_a-cell-hover')
+				this.#_getPrvsSblngByCls(cell, '_a-cell-label-vertical').classList.remove('_a-cell-row-hover')
 		})
 
 		this.#log([cells], 'Day grid')
 
 	}
 
+	#createEvent = (time) => {
 
-	#_rndr = (tag, classes, parent) => {
-		const el = document.createElement(tag)
-		Array.isArray(classes) ? el.classList.add(...classes) : el.classList = classes
+		const popup =
+			this.#_rndr( 'div', ['_a-event-popup', '_a-flex', '_a-flex-column', '_a-p3'], this.agendaRoot )
+		popup.innerHTML = `
+			<div class="_a-input-label _a-mt3">
+				<input type="text" id="_a-name"  placeholder="">
+				<label for="_a-name">Name</label>
+			</div>
+			<div class="_a-input-label _a-mt3">
+				<input type="text" id="_a-phone" placeholder="">
+				<label for="_a-phone">Phone</label>
+			</div>
+			<div class="_a-flex _a-justify-space-evenly _a-mt3 ">
+				<button class="_a-btn _a-btn-primary _a-btn-save">Save</button>
+				<button class="_a-btn _a-btn-primary _a-btn-cancel">Cancel</button>
+			</div>
+		`
+		popup.querySelector( '._a-btn-save' ).onclick = () => { 
+			this.#eventsStorage[time] = {
+				name: popup.querySelector('#_a-name').value,
+				phone: popup.querySelector('#_a-phone').value
+			}
+			this.agendaRoot.removeChild( popup )
+			this.#log( this.#eventsStorage, 'Event storage' )
+		}
+		popup.querySelector( '._a-btn-cancel' ).onclick = () => this.agendaRoot.removeChild( popup )
+
+	}
+
+	#_rndr = ( tag, classes, parent ) => {
+		const el = document.createElement( tag )
+		if (classes.length) 
+			Array.isArray(classes) ? el.classList.add(...classes) : el.classList = classes
 		return parent.appendChild(el)
 	}
 	#_getPrvsSblngByCls = (element, className) => {
 		while (element) {
 			element = element.previousElementSibling;
-			if (element && element.classList.contains(className)) {
+			if ( element && element.classList.contains(className) ) {
 				return element;
 			}
 		}
