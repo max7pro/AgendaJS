@@ -2,9 +2,10 @@ class AgendaJS {
 	#options = {
 		defaultView: 'month',  // month, week, day
 		firstIsSunday: false, // true, false
-		dayStartAM: 6,
-		dayEndPM: 9,
+		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
+		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
 		logToConsole: true,	// true, false
+		allDayLabel: 'all-day'
 	}
 	#view
 	#dateTimePos
@@ -120,7 +121,7 @@ class AgendaJS {
 		cells.forEach( obj => {
 			let cell = this._r( 'div', [ '_a-cell' ], this.aGrid )
 			cell.innerText = obj.date()
-			cell.dataset.date = obj.unix()
+			cell.dataset.ts = obj.unix()
 			cell.onclick = () => this.#preRender({ time: obj, view: 'day' })
 		} )	
 			
@@ -146,7 +147,7 @@ class AgendaJS {
 		cells.push(rowTime)
 		while ( rowTime.hour() < rowEnd.hour() ) {
 			rowTime = rowTime.add(30, 'minute')
-			cells.push(rowTime)
+			cells.push( rowTime )
 		}
 
 		this.setHeading(heading)
@@ -156,7 +157,7 @@ class AgendaJS {
 			this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = label.format('ddd D')
 		)
 
-		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = 'all-day'
+		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
 		for (let cell = 1; cell <= hCells.length; cell++)
 				this._r('div', ['_a-cell'], this.aGrid)
 		
@@ -164,8 +165,12 @@ class AgendaJS {
 			let halfHour = obj.minute() ? true : false
 			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 				.innerText = obj.format('h:mm a')
-			for (let cell = 1; cell <= hCells.length; cell++)
-				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+			for ( let day = 0; day < hCells.length; day++ ) {
+				console.log( obj.format( 'h:mm a' ), time);
+				let cell = this._r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.aGrid )
+				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
+				cell.onclick = () => this.#preRender({ time: hCells[day], view: 'day' })
+			}
 		})
 
 		this.log([hCells, cells], 'Week grid')
@@ -189,17 +194,16 @@ class AgendaJS {
 
 		this.setHeading(heading)
 
-		this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = hCell
-		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = 'all-day'
-		for (let cell = 1; cell <= dayjs.weekdays().length; cell++)
-			this._r('div', ['_a-cell'], this.aGrid)
+		this._r( 'div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid ).innerText = hCell
+		
+		this._r('div', ['_a-cell', '_a-cell-label-vertical'], this.aGrid).innerText = this.#options.allDayLabel
+		this._r('div', ['_a-cell'], this.aGrid)
 
 		cells.forEach( label => {
 			let halfHour = label.minute() ? true : false
 			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 				.innerText = label.format('h:mm a')
-			for (let cell = 1; cell <= dayjs.weekdays().length; cell++)
-				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
+			this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 		})
 
 		this.log([cells], 'Day grid')

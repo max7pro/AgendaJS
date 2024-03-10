@@ -62,10 +62,13 @@
 }
 ._a-grid._a-grid-month {
 	grid-template-columns: repeat(7, 1fr);
+	grid-template-rows: auto repeat(auto, 200px);
 }
-._a-grid._a-grid-week,
-._a-grid._a-grid-day {
+._a-grid._a-grid-week { 
 	grid-template-columns: auto repeat(7, 1fr);
+}
+._a-grid._a-grid-day {
+	grid-template-columns: 1fr 10fr;
 }
 
 ._a-cell {
@@ -81,8 +84,17 @@
 	text-align: right;
 }
 
-._a-grid-day ._a-cell._a-cell-label-horizontal {
-	grid-column: 1 / 9;
+._a-grid._a-grid-month ._a-cell[data-ts] {
+	height: 100px;
+	text-align: right; cursor: pointer;
+}
+
+._a-grid._a-grid-week ._a-cell {
+	cursor: pointer;
+}
+
+._a-grid._a-grid-day ._a-cell._a-cell-label-horizontal {
+	grid-column: 1 / 3;
 }
 
 ._a-cell._a-cell-half-hour {
@@ -92,7 +104,5 @@
 	color: #6f6f6f;
 }
 
-._a-grid._a-grid-month ._a-cell {
-	text-align: right;
-}
+
 
