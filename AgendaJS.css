@@ -19,6 +19,40 @@
 	justify-content: space-between;
 }
 
+._a-btn {
+	display: inline-flex;
+	padding-left: 15px;
+	padding-right: 15px;
+	height: 30px;
+	line-height: 30px;
+	background-color: rgba(46, 51, 56, 0.05);
+	color: rgb(57, 68, 71);
+	cursor: pointer;
+}
+._a-btn:hover {
+	background-color: rgba(46, 51, 56, 0.073);
+}
+._a-btn._a-btn-primary {
+	border: 1px solid rgb(23, 139, 178);
+	background-color: #fff;
+	color: rgb(23, 139, 178);
+	/* background-color: rgba(23, 139, 178, 0.16); */
+}
+._a-btn._a-btn-primary:hover {
+	background-color: rgba(23, 139, 178, 0.216);
+}
+._a-btn._a-btn-primary._a-btn-slctd,
+._a-btn._a-btn-primary._a-btn-slctd:hover {
+	color: rgb(218, 236, 243);
+	background-color: rgb(23, 139, 178);
+}
+/* ._a-view-switch > ._a-btn:first-child {
+	border-top-left-radius: 5px; border-bottom-left-radius: 5px;
+}
+._a-view-switch > ._a-btn:last-child {
+	border-top-right-radius: 5px; border-bottom-right-radius: 5px;
+} */
+
 ._a-canvas {
 	color: #6f6f6f;
 }
@@ -46,40 +80,19 @@
 ._a-cell._a-cell-label-vertical {
 	text-align: right;
 }
-._a-cell._a-cell-half-hour {
-	border-top: 1px dotted #e1e1e1;
-}
+
 ._a-grid-day ._a-cell._a-cell-label-horizontal {
 	grid-column: 1 / 9;
 }
-._a-cell._a-cell-label-vertical._a-cell-half-hour {
-	color: transparent;
+
+._a-cell._a-cell-half-hour {
+	border-top: 1px dotted #e1e1e1; color: transparent;
 }
-._a-cell._a-cell-label-vertical._a-cell-half-hour:hover {
+._a-cell._a-cell-half-hour:hover {
 	color: #6f6f6f;
 }
 
-._a-btn {
-	display: inline-flex; padding-left: 15px; padding-right: 15px; height: 30px; line-height: 30px;
-	background-color: rgba(46, 51, 56, 0.05); color: rgb(57, 68, 71); cursor: pointer;
+._a-grid._a-grid-month ._a-cell {
+	text-align: right;
 }
-._a-btn:hover {
-	background-color:rgba(46, 51, 56, 0.073);
-}
-._a-btn._a-btn-primary {
-	border: 1px solid rgb(23, 139, 178); background-color: #fff; color: rgb(23, 139, 178);
-	/* background-color: rgba(23, 139, 178, 0.16); */
-}
-._a-btn._a-btn-primary:hover {
-	background-color:rgba(23, 139, 178, 0.216);
-}
-._a-btn._a-btn-primary._a-btn-slctd,
-._a-btn._a-btn-primary._a-btn-slctd:hover {
-	color: rgb(218, 236, 243); background-color: rgb(23, 139, 178);
-}
-/* ._a-view-switch > ._a-btn:first-child {
-	border-top-left-radius: 5px; border-bottom-left-radius: 5px;
-}
-._a-view-switch > ._a-btn:last-child {
-	border-top-right-radius: 5px; border-bottom-right-radius: 5px;
-} */
+

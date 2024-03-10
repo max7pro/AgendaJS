@@ -9,7 +9,7 @@ class AgendaJS {
 	#view
 	#dateTimePos
 
-	constructor (rootSelector, opts = {}) {
+	constructor ( rootSelector, opts = {} ) {
 		this.#loadJSLibs( () => 
 			this.#initializeApp(rootSelector, opts)
 		)
@@ -19,7 +19,9 @@ class AgendaJS {
 
 		const
 			plugins = [
-				'timezone', 'localeData', 'updateLocale', 'advancedFormat' 
+				'timezone', 'localeData', 'updateLocale',
+				// 'customParseFormat',
+				// 'advancedFormat'
 			],
 			imports = [
 				'https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js',
@@ -29,7 +31,7 @@ class AgendaJS {
 		for (const url of imports) await import(url)
 		plugins.forEach( p => dayjs.extend( window[`dayjs_plugin_${ p }`] ) )
 
-		this.log(['Timezone: ' + dayjs.tz.guess(), 'Locale: ' + dayjs.locale()], 'Initialize dayJS')
+		this.log(['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'Initialize dayJS')
 
 		callback()
 	}
@@ -71,13 +73,8 @@ class AgendaJS {
 				<span data-view="week" class="_a-btn _a-btn-primary">Week</span>
 				<span data-view="day" class="_a-btn _a-btn-primary">Day</span>
 			</div>
-		`
-		toolbar.querySelector(`[data-view="${ this.#options.defaultView }"]`).classList.add('_a-btn-slctd')
-		toolbar.querySelector('._a-view-switch').onclick = ({target}) => {
-			toolbar.querySelectorAll('._a-view-switch ._a-btn').forEach( btn => btn.classList.remove('_a-btn-slctd') )
-			target.classList.add('_a-btn-slctd')
-			this.#preRender({ view: target.dataset.view })
-		}
+			`
+		toolbar.querySelector('._a-view-switch').onclick = ({target}) => { this.#preRender({ view: target.dataset.view }) }
 		document.querySelector('._a-btn-now').onclick = () => this.#preRender({ time: dayjs() }) 
 		document.querySelector('._a-btn-prev').onclick = () => this.#preRender({ time: this.#dateTimePos.subtract(1, this.#view) })
 		document.querySelector('._a-btn-next').onclick = () => this.#preRender({ time: this.#dateTimePos.add(1, this.#view) })
@@ -88,11 +85,13 @@ class AgendaJS {
 		this.#view = view ?? this.#view
 		this.#dateTimePos = time ?? this.#dateTimePos
 
-		while (this.aGrid.firstChild) this.aGrid.firstChild.remove()
-
+		this.aGrid.innerHTML = null
 		this.aGrid.className = `_a-grid _a-grid-${ this.#view }`
 
-		this.log([this.#view, this.#dateTimePos.format('ddd, MMMM D, YYYY HH:mm A')], 'Prerender')
+		document.querySelectorAll( '._a-view-switch ._a-btn' ).forEach( btn => btn.classList.remove( '_a-btn-slctd' ) )
+		document.querySelector( `[data-view="${ this.#view }"]` ).classList.add( '_a-btn-slctd' )
+
+		this.log( [ '[Time:] ' + this.#dateTimePos.format('ddd, MMMM D, YYYY HH:mm A'), '[View:] ' + this.#view ], 'Prerender')
 
 		this[`${ this.#view }View`](this.#dateTimePos)
 	}
@@ -115,9 +114,16 @@ class AgendaJS {
 		
 		this.setHeading(heading)
 				
-		hCells.forEach( d => this._r('div', ['_a-cell', '_a-cell-label-horizontal'], this.aGrid).innerText = d )
-		cells.forEach( d => this._r('div', ['_a-cell'], this.aGrid).innerText = d.date() )
-	
+		hCells.forEach( label =>
+			this._r('div', [ '_a-cell', '_a-cell-label-horizontal' ], this.aGrid).innerText = label
+		)
+		cells.forEach( obj => {
+			let cell = this._r( 'div', [ '_a-cell' ], this.aGrid )
+			cell.innerText = obj.date()
+			cell.dataset.date = obj.unix()
+			cell.onclick = () => this.#preRender({ time: obj, view: 'day' })
+		} )	
+			
 		this.log([hCells, cells], 'Month grid')
 
 	}
@@ -154,10 +160,10 @@ class AgendaJS {
 		for (let cell = 1; cell <= hCells.length; cell++)
 				this._r('div', ['_a-cell'], this.aGrid)
 		
-		cells.forEach( label => {
-			let halfHour = label.minute() ? true : false
+		cells.forEach( obj => {
+			let halfHour = obj.minute() ? true : false
 			this._r('div', '_a-cell _a-cell-label-vertical' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
-				.innerText = label.format('h:mm a')
+				.innerText = obj.format('h:mm a')
 			for (let cell = 1; cell <= hCells.length; cell++)
 				this._r('div', '_a-cell' + (halfHour ? ' _a-cell-half-hour' : ''), this.aGrid)
 		})
