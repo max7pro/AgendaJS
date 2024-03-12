@@ -6,10 +6,7 @@
 	<title>AgendaJS Demo</title>
 	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 	<link rel="stylesheet" href="AgendaJS.css">
-	<!-- 
-		<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script> 
-	-->
+	
 	<script src="AgendaJS.js"></script>
 </head>
 <body>
@@ -17,7 +14,15 @@
 	<div id="agenda-js"></div>
 
 	<script>
-		new AgendaJS('#agenda-js')
+
+		let agenda = new AgendaJS('#agenda-js', {
+			events: JSON.parse( localStorage.getItem('_agendajs-events') )
+		})
+
+		// let agenda = new AgendaJS( '#agenda-js' )
+		// agenda.events = JSON.parse( localStorage.getItem( '_agendajs-events' ) )
+		// agenda.loadEvents( JSON.parse( localStorage.getItem( '_agendajs-events' ) ) )
+
 	</script>
 	
 </body>
