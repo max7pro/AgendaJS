@@ -164,12 +164,12 @@
 	position: relative;
 }
 ._a-input-label input {
-	width: 100%; border: none; border-bottom: 1px solid #555; padding: 8px 0 5px 0;
+	width: 100%; border: none; border-bottom: 1px solid #e1e1e1; padding: 8px 0 5px 0;
 	outline: none;
 }
 ._a-input-label label {
 	position: absolute; left: 0; top: 5px;
-	color: #999; font-size: 16px; pointer-events: none; transition: 0.2s ease all;
+	font-size: 16px; pointer-events: none; transition: 0.2s ease all;
 }
 ._a-input-label input:focus ~ label,
 ._a-input-label input:not(:placeholder-shown) ~ label {

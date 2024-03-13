@@ -19,6 +19,11 @@
 			events: JSON.parse( localStorage.getItem('_agendajs-events') )
 		})
 
+		agenda.onEventCreated( e => {
+			console.log( 'Event successfully created', e )
+			localStorage.setItem('_agendajs-events', JSON.stringify(agenda.events))
+		})
+
 		// let agenda = new AgendaJS( '#agenda-js' )
 		// agenda.events = JSON.parse( localStorage.getItem( '_agendajs-events' ) )
 		// agenda.loadEvents( JSON.parse( localStorage.getItem( '_agendajs-events' ) ) )
