@@ -146,7 +146,6 @@
 ._a-cell-half-hour {
 	border-top: 1px dotted #e1e1e1; color: transparent;
 }
-._a-cell-half-hour:hover, 
 ._a-cell-half-hour._a-cell-row-hover {
 	color: #6f6f6f; font-size: .8em;
 }
@@ -155,8 +154,12 @@
 ._a-cell-events {
 	position: absolute; top: 0; left: 0; padding-left: 3px; padding-top: 2px;
 }
-._a-event-badge {
+._a-cell-events ._a-event-badge {
 	margin-bottom: 1px; padding: 0 3px; color: #fff; font-size: 0.9em;
+}
+._a-grid-week ._a-event-badge {
+	position: absolute; right: 3px; top: 3px; padding: 0 3px; 
+	color: #fff; font-size: 0.9em;
 }
 
 

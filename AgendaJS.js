@@ -9,10 +9,10 @@ class AgendaJS {
 		colors: [
 			'#178bb2FF',
 			'#48B4A9FF',
+			'#8268AEFF',
+			'#F2413DFF',
 			'#2FB079FF',
 			'#FFD35E',
-			'#F2413DFF',
-			'#8268AEFF',
 		],
 		strings: {
 			allDayLabel: 'all-day',
@@ -133,10 +133,10 @@ class AgendaJS {
 			default: return
 		}
 
-		this.eventsView()
+		
 	}
 
-	eventsView () {
+	#monthEvents () {
 		
 		const
 			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
@@ -145,7 +145,7 @@ class AgendaJS {
 		
 		for ( const ts in this.#eventsStorage ) {
 			if ( ts >= min && ts <= max ) {
-				let date = dayjs.unix( ts ).startOf('date').unix()
+				const date = dayjs.unix( ts ).startOf('date').unix()
 				if ( !events.hasOwnProperty( date ) ) events[date] = []
 				events[date].push(
 					Object.assign( this.#eventsStorage[ts], { timestamp: ts } )
@@ -153,32 +153,47 @@ class AgendaJS {
 			}
 		}
 
-		for ( let date in events ) {
-
-			let colors = this.#_clone( this.#options.colors )
-	
-			const group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
-
+		for ( const date in events ) {
+			const
+				colors = this.#_clone( this.#options.colors ),
+				group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
+			
 			events[date].forEach( event => {
-
 				if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-
 				const badge = this.#_r( 'span', '_a-event-badge', group )
 				badge.innerText = dayjs.unix( event.timestamp ).format( 'h:mm A' )
 				badge.style.backgroundColor = colors.shift()
 			})
 		}
 
-		this.#_l( [events], 'Render event badges' )
+		this.#_l( [events], 'Render month events badges' )
 	}
 
-	#setHeading ( str ) {
-		this.#agendaRoot.querySelector( '._a-heading' ).innerText = str
+	#weekEvents () {
+
+		const
+			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			colors = this.#_clone( this.#options.colors )
+			
+		const events = Object.fromEntries(
+			Object.entries( this.#eventsStorage ).filter( ([ ts ]) =>  ts >= min && ts <= max )
+		)
+
+		for ( const ts in events ) {
+			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			badge.innerText = events[ts].name // + ' ' + events[ts].phone
+			badge.style.backgroundColor = colors.shift()
+		}
+			
+		this.#_l( [events], 'Render week events badges' )
 	}
-	
+
 	#monthView ( time ) {
 						
-		let start = time.startOf( 'month' ).startOf( 'week' ),
+		const
+			start = time.startOf( 'month' ).startOf( 'week' ),
 			end = time.endOf( 'month' ).endOf( 'week' ),
 			diff = end.diff( start, 'day' ),
 			heading = time.format( 'MMMM YYYY' ),
@@ -196,13 +211,15 @@ class AgendaJS {
 			this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = label
 		)
 		cells.forEach( obj => {
-			let cell = this.#_r( 'div', ['_a-cell'], this.#aGrid )
+			const cell = this.#_r( 'div', ['_a-cell'], this.#aGrid )
 			cell.innerText = obj.date()
 			cell.dataset.ts = obj.unix()
 			cell.onclick = () => this.#preRender( { time: obj, view: 'day' } )
 		} )
 			
 		this.#_l( [hCells, cells], 'Month grid' )
+
+		this.#monthEvents()
 	}
 
 	#weekView ( time ) {
@@ -249,7 +266,7 @@ class AgendaJS {
 				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 				btnPlus.addEventListener( 'click', e => {
 					e.stopPropagation()
-					this.#addEvent( cell.dataset.ts )
+					this.#newEvent( cell.dataset.ts )
 				} )
 				cell.onclick = () => {
 					this.#preRender( { time: hCells[day], view: 'day' } )
@@ -263,6 +280,7 @@ class AgendaJS {
 
 		this.#_l( [hCells, cells], 'Week grid' )
 
+		this.#weekEvents()
 	}
 
 	#dayView ( time ) {
@@ -299,7 +317,7 @@ class AgendaJS {
 
 			btnPlus.addEventListener( 'click', e => {
 				e.stopPropagation()
-				this.#addEvent( cell.dataset.ts )
+				this.#newEvent( cell.dataset.ts )
 			} )
 			cell.onmouseenter = () =>
 				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
@@ -311,7 +329,11 @@ class AgendaJS {
 
 	}
 
-	#addEvent ( time ) {
+	#setHeading ( str ) {
+		this.#agendaRoot.querySelector( '._a-heading' ).innerText = str
+	}
+
+	#newEvent ( time ) {
 		if ( this.#popup ) return 
 		this.#popup = this.#_r( 'div', ['_a-popup-overlay'], this.#agendaRoot )
 		const
