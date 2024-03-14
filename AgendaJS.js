@@ -5,22 +5,32 @@ class AgendaJS {
 		firstIsSunday: false, // true, false
 		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
 		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
-		logToConsole: true,	// true, false
+		logToConsole: true,	// true, false,
+		colors: [
+			'#178bb2FF',
+			'#48B4A9FF',
+			'#2FB079FF',
+			'#FFD35E',
+			'#F2413DFF',
+			'#8268AEFF',
+		],
 		strings: {
 			allDayLabel: 'all-day',
 			createEventPopHeading: 'Event for ',
 			createEventPopTimeFormat: 'h:mm A, dddd, MMMM D, YYYY'
 		}
 	}
+
 	#initialized = false
 	#apiEvents = {}
 	#view
 	#agendaRoot
 	#aGrid
 	#popup = null
-	#dateTimePos
+	#datetime
 	#eventsStorage = {}
 
+	#colors
 	#icons = {
 		'calendar-plus': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpY29uIGljb24tdGFibGVyIGljb24tdGFibGVyLWNhbGVuZGFyLXBsdXMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZT0iY3VycmVudENvbG9yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIHN0cm9rZT0ibm9uZSIgZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMi41IDIxaC02LjVhMiAyIDAgMCAxIC0yIC0ydi0xMmEyIDIgMCAwIDEgMiAtMmgxMmEyIDIgMCAwIDEgMiAydjUiIC8+PHBhdGggZD0iTTE2IDN2NCIgLz48cGF0aCBkPSJNOCAzdjQiIC8+PHBhdGggZD0iTTQgMTFoMTYiIC8+PHBhdGggZD0iTTE2IDE5aDYiIC8+PHBhdGggZD0iTTE5IDE2djYiIC8+PC9zdmc+'
 	}
@@ -50,9 +60,9 @@ class AgendaJS {
 
 		this.#_l( ['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'Initialize dayJS' )
 		
-	})
-
-	async #initializeApp ( rootSelector, opts ) {
+	} )
+	
+	#initializeApp ( rootSelector, opts ) {
 
 		this.#options = {
 			...this.#options,
@@ -64,7 +74,7 @@ class AgendaJS {
 		} )
 
 		this.#view = this.#options.defaultView
-		this.#dateTimePos = dayjs().startOf( 'D' )
+		this.#datetime = dayjs().startOf( 'D' )
 
 		this.#agendaRoot = this.#_r( 'div', ['_a-canvas', '_a-m3'], document.querySelector( rootSelector ) )
 		this.#initializeToolbar()
@@ -89,14 +99,14 @@ class AgendaJS {
 			<div class="_a-heading"></div>
 			<div class="_a-view-switch _a-flex">
 				<span data-view="month" class="_a-btn _a-btn-primary">Month</span>
-				<span data-view="week" class="_a-btn _a-btn-primary">Week</span>
+				<span data-view="week" class="_a-btn _a-btn-primary _a-br0 _a-bl0">Week</span>
 				<span data-view="day" class="_a-btn _a-btn-primary">Day</span>
 			</div>
 			`
-		toolbar.querySelector( '._a-view-switch' ).onclick = ( { target } ) => { this.#preRender( { view: target.dataset.view } ) }
+		toolbar.querySelector( '._a-view-switch' ).onclick = ( { target } ) => this.#preRender( { view: target.dataset.view } )
 		toolbar.querySelector( '._a-btn-now' ).onclick = () => this.#preRender( { time: dayjs() } )
-		toolbar.querySelector( '._a-btn-prev' ).onclick = () => this.#preRender( { time: this.#dateTimePos.subtract( 1, this.#view ) } )
-		toolbar.querySelector( '._a-btn-next' ).onclick = () => this.#preRender( { time: this.#dateTimePos.add( 1, this.#view ) } )
+		toolbar.querySelector( '._a-btn-prev' ).onclick = () => this.#preRender( { time: this.#datetime.subtract( 1, this.#view ) } )
+		toolbar.querySelector( '._a-btn-next' ).onclick = () => this.#preRender( { time: this.#datetime.add( 1, this.#view ) } )
 
 		this.#initialized = true
 	}
@@ -104,24 +114,62 @@ class AgendaJS {
 	#preRender ( { view, time } = {} ) {
 
 		this.#view = view ?? this.#view
-		this.#dateTimePos = time ?? this.#dateTimePos
+		this.#datetime = time ?? this.#datetime
 
 		// this.#_eraseDomTree( this.aGrid )
 		this.#aGrid.innerHTML = null
 		this.#aGrid.className = `_a-grid _a-grid-${ this.#view }`
-
 		document.querySelectorAll( '._a-view-switch ._a-btn' ).forEach( btn => btn.classList.remove( '_a-btn-slctd' ) )
 		document.querySelector( `[data-view="${ this.#view }"]` ).classList.add( '_a-btn-slctd' )
 
-		this.#_l( ['[Time:] ' + this.#dateTimePos.format( 'ddd, MMMM D, YYYY HH:mm A' ), '[View:] ' + this.#view], 'Prerender' )
-		
+		this.#_l( ['[Time:] ' + this.#datetime.format( 'ddd, MMMM D, YYYY HH:mm A' ), '[View:] ' + this.#view], 'Prerender' )
+
+		// this[`dayView`]( this.#datetime )
+		// eval( `this.#${ this.#view }View( this.#datetime )` )
 		switch ( this.#view ) {
-			case 'month': this.#monthView( this.#dateTimePos ); break
-			case 'week': this.#weekView( this.#dateTimePos ); break
-			case 'day': this.#dayView( this.#dateTimePos ); break
+			case 'month': this.#monthView( this.#datetime ); break
+			case 'week': this.#weekView( this.#datetime ); break
+			case 'day': this.#dayView( this.#datetime ); break
+			default: return
 		}
-		// this[`${ v }View`]( this.#dateTimePos )
-		// eval( `this.#${ this.#view }View( this.#dateTimePos )` )
+
+		this.eventsView()
+	}
+
+	eventsView () {
+		
+		const
+			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			events = {}
+		
+		for ( const ts in this.#eventsStorage ) {
+			if ( ts >= min && ts <= max ) {
+				let date = dayjs.unix( ts ).startOf('date').unix()
+				if ( !events.hasOwnProperty( date ) ) events[date] = []
+				events[date].push(
+					Object.assign( this.#eventsStorage[ts], { timestamp: ts } )
+				)
+			}
+		}
+
+		for ( let date in events ) {
+
+			let colors = this.#_clone( this.#options.colors )
+	
+			const group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
+
+			events[date].forEach( event => {
+
+				if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+
+				const badge = this.#_r( 'span', '_a-event-badge', group )
+				badge.innerText = dayjs.unix( event.timestamp ).format( 'h:mm A' )
+				badge.style.backgroundColor = colors.shift()
+			})
+		}
+
+		this.#_l( [events], 'Render event badges' )
 	}
 
 	#setHeading ( str ) {
@@ -197,7 +245,7 @@ class AgendaJS {
 				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
 
-				let btnPlus = this.#_r( 'span', ['_a-cel-btn-plus'], cell )
+				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 				btnPlus.addEventListener( 'click', e => {
 					e.stopPropagation()
@@ -246,7 +294,7 @@ class AgendaJS {
 			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
-			let btnPlus = this.#_r( 'span', ['_a-cel-btn-plus'], cell )
+			let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 			btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 
 			btnPlus.addEventListener( 'click', e => {
@@ -272,7 +320,9 @@ class AgendaJS {
 				const
 					name = this.#popup.querySelector( '#_a-name' ).value,
 					phone = this.#popup.querySelector( '#_a-phone' ).value
-				if ( !name.length && !phone.length ) return
+				if ( !name.length && !phone.length ) {
+
+				}
 				
 				this.#eventsStorage[time] = { name, phone }
 				this.#fireEvnt( 'onNewEventCreated', { time, name, phone } )
@@ -291,7 +341,7 @@ class AgendaJS {
 		const heading = dayjs.unix( time ).format( this.#options.strings.createEventPopHeading + this.#options.strings.createEventPopTimeFormat )
 		
 		popup.innerHTML = `
-			<div class="_a-popup-heading _a-mt3">${ heading }</div>
+			<div class="_a-popup-heading">${ heading }</div>
 			<div class="_a-input-label _a-mt4">
 				<input type="text" id="_a-name"  placeholder="">
 				<label for="_a-name">Name</label>
@@ -300,7 +350,7 @@ class AgendaJS {
 				<input type="text" id="_a-phone" placeholder="">
 				<label for="_a-phone">Phone</label>
 			</div>
-			<div class="_a-flex _a-justify-space-evenly _a-mt4 _a-mb3 ">
+			<div class="_a-flex _a-justify-space-evenly _a-mt4">
 				<button class="_a-btn _a-btn-primary _a-btn-save">Save</button>
 				<button class="_a-btn _a-btn-primary _a-btn-cancel">Cancel</button>
 			</div>
@@ -321,6 +371,10 @@ class AgendaJS {
 		if (classes.length) 
 			Array.isArray(classes) ? el.classList.add(...classes) : el.classList = classes
 		return parent.appendChild(el)
+	}
+
+	#_clone(value) {
+		return JSON.parse( JSON.stringify( value ) )
 	}
 
 	#_eraseDomTree ( element ) {
@@ -367,7 +421,6 @@ class AgendaJS {
 		}
 	}
 
-	// AgentaJS API
 	get events () {
 		return this.#eventsStorage
 	}
@@ -376,15 +429,22 @@ class AgendaJS {
 		let interval = setInterval( () => {
 			if ( this.#initialized ) {
 				clearInterval( interval )
-				this.#preRender()
 				this.#eventsStorage = value
 				this.#_l( [this.#eventsStorage], 'Load events' )
+				this.#preRender()
 			}
 		}, 25 )
 	}
 
+
+	// Public API methods
+
 	async loadEvents ( events ) {
 		this.events = events
+	}
+
+	readEvents ( events ) {
+		return this.#eventsStorage
 	}
 
 	onEventCreated ( callback ) {
