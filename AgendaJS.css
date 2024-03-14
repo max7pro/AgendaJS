@@ -143,9 +143,10 @@
 	cursor: pointer; width: 16px;
 }
 
-._a-cell-half-hour {
+._a-cell-label-vertical._a-cell-half-hour {
 	border-top: 1px dotted #e1e1e1; color: transparent;
 }
+._a-cell-label-vertical._a-cell-half-hour:hover,
 ._a-cell-half-hour._a-cell-row-hover {
 	color: #6f6f6f; font-size: .8em;
 }
@@ -177,6 +178,9 @@
 ._a-input-label input {
 	width: 100%; border: none; border-bottom: 1px solid #e1e1e1; padding: 8px 0 5px 0;
 	outline: none;
+}
+._a-input-label input._a-input-error {
+	border-bottom: 1px solid #ff0000;
 }
 ._a-input-label label {
 	position: absolute; left: 0; top: 5px; padding-left: 3px;

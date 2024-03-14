@@ -16,8 +16,10 @@ class AgendaJS {
 		],
 		strings: {
 			allDayLabel: 'all-day',
-			createEventPopHeading: 'Event for ',
-			createEventPopTimeFormat: 'h:mm A, dddd, MMMM D, YYYY'
+			createEventPopupField1Label: 'Name',
+			createEventPopupField2Label: 'Phone',
+			createEventPopupHeading: 'Event for',
+			createEventPopupTimeFormat: 'h:mm A, dddd, MMMM D, YYYY' // dayjs format, see https://day.js.org/docs/en/display/format
 		}
 	}
 
@@ -80,7 +82,7 @@ class AgendaJS {
 		this.#initializeToolbar()
 		this.#aGrid = this.#_r( 'div', ['_a-grid'], this.#agendaRoot )
 
-		Object.keys( this.#options.events ).length ?
+		this.#options.events && Object.keys( this.#options.events ).length ?
 			this.events = this.#options.events :
 			this.#preRender()
 		
@@ -127,13 +129,21 @@ class AgendaJS {
 		// this[`dayView`]( this.#datetime )
 		// eval( `this.#${ this.#view }View( this.#datetime )` )
 		switch ( this.#view ) {
-			case 'month': this.#monthView( this.#datetime ); break
-			case 'week': this.#weekView( this.#datetime ); break
-			case 'day': this.#dayView( this.#datetime ); break
+			case 'month':
+				this.#monthView( this.#datetime )
+				this.#monthEvents()
+				break
+			case 'week':
+				this.#weekView( this.#datetime )
+				this.#weekEvents()
+				break
+			case 'day':
+				this.#dayView( this.#datetime )
+				this.#dayEvents()
+				break
 			default: return
 		}
 
-		
 	}
 
 	#monthEvents () {
@@ -190,6 +200,26 @@ class AgendaJS {
 		this.#_l( [events], 'Render week events badges' )
 	}
 
+	#dayEvents () {
+		const
+			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			colors = this.#_clone( this.#options.colors )
+		
+		const events = Object.fromEntries(
+			Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
+		)
+		
+		for ( const ts in events ) {
+			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			badge.innerText = events[ts].name + ' ' + events[ts].phone
+			badge.style.backgroundColor = colors.shift()
+		}
+
+		this.#_l( [events], 'Render day events badges' )
+	}
+
 	#monthView ( time ) {
 						
 		const
@@ -219,7 +249,6 @@ class AgendaJS {
 			
 		this.#_l( [hCells, cells], 'Month grid' )
 
-		this.#monthEvents()
 	}
 
 	#weekView ( time ) {
@@ -259,15 +288,19 @@ class AgendaJS {
 			this.#_r( 'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
 				.innerText = obj.format( 'h:mm a' )
 			for ( let day = 0; day < hCells.length; day++ ) {
-				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid ),
+					btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
+				
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
-
-				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
-				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
-				btnPlus.addEventListener( 'click', e => {
-					e.stopPropagation()
-					this.#newEvent( cell.dataset.ts )
-				} )
+ 
+				if ( !this.#eventsStorage[cell.dataset.ts] ) {
+					btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+					btnPlus.addEventListener( 'click', e => {
+						e.stopPropagation()
+						this.#newEvent( cell.dataset.ts )
+					} )
+				}
+				
 				cell.onclick = () => {
 					this.#preRender( { time: hCells[day], view: 'day' } )
 				}
@@ -279,8 +312,6 @@ class AgendaJS {
 		} )
 
 		this.#_l( [hCells, cells], 'Week grid' )
-
-		this.#weekEvents()
 	}
 
 	#dayView ( time ) {
@@ -309,16 +340,19 @@ class AgendaJS {
 			const halfHour = obj.minute() ? true : false
 			this.#_r( 'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
 				.innerText = obj.format( 'h:mm a' )
-			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+			
+			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid ),
+				btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
-			let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
-			btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+			if ( !this.#eventsStorage[cell.dataset.ts] ) {
+				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+				btnPlus.addEventListener( 'click', e => {
+					e.stopPropagation()
+					this.#newEvent( cell.dataset.ts )
+				} )
+			}
 
-			btnPlus.addEventListener( 'click', e => {
-				e.stopPropagation()
-				this.#newEvent( cell.dataset.ts )
-			} )
 			cell.onmouseenter = () =>
 				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
 			cell.onmouseleave = () =>
@@ -340,15 +374,24 @@ class AgendaJS {
 			popup = this.#_r( 'div', ['_a-event-popup', '_a-flex', '_a-flex-column', '_a-p4'], this.#popup ),
 			save = () => {
 				const
-					name = this.#popup.querySelector( '#_a-name' ).value,
-					phone = this.#popup.querySelector( '#_a-phone' ).value
-				if ( !name.length && !phone.length ) {
-
-				}
+					field1 = this.#popup.querySelector( '#_a-field-1' ),
+					field2 = this.#popup.querySelector( '#_a-field-2' )
 				
-				this.#eventsStorage[time] = { name, phone }
-				this.#fireEvnt( 'onNewEventCreated', { time, name, phone } )
+				this.#popup.querySelectorAll( 'input' ).forEach( field => {
+					if ( !field.value.length ) {
+						field.classList.add( '_a-input-error' )
+						field.addEventListener( 'input', ( { target } ) => {
+							target.classList.remove( '_a-input-error' )
+							console.log( 'on input' )
+						}, { once: true } )
+					}
+				})
+				if ( !field1.value.length || !field2.value.length ) return
+
+				this.#eventsStorage[time] = { name: field1.value, phone: field2.value }
+				this.#fireEvnt( 'onNewEventCreated', { time, name: field1.value, phone: field2.value } )
 				close()
+				this.#preRender()
 				this.#_l( this.#eventsStorage, 'Event storage' )
 			},
 			close = () => {
@@ -360,17 +403,17 @@ class AgendaJS {
 				if ( event.key === 'Escape' ) close()
 			}
 
-		const heading = dayjs.unix( time ).format( this.#options.strings.createEventPopHeading + this.#options.strings.createEventPopTimeFormat )
+		const heading = this.#options.strings.createEventPopupHeading + ' ' + dayjs.unix( time ).format( this.#options.strings.createEventPopupTimeFormat )
 		
 		popup.innerHTML = `
 			<div class="_a-popup-heading">${ heading }</div>
 			<div class="_a-input-label _a-mt4">
-				<input type="text" id="_a-name"  placeholder="">
-				<label for="_a-name">Name</label>
+				<input type="text" id="_a-field-1" placeholder="">
+				<label for="_a-field-1">${ this.#options.strings.createEventPopupField1Label }</label>
 			</div>
 			<div class="_a-input-label _a-mt4">
-				<input type="text" id="_a-phone" placeholder="">
-				<label for="_a-phone">Phone</label>
+				<input type="text" id="_a-field-2" placeholder="">
+				<label for="_a-field-2">${ this.#options.strings.createEventPopupField2Label }</label>
 			</div>
 			<div class="_a-flex _a-justify-space-evenly _a-mt4">
 				<button class="_a-btn _a-btn-primary _a-btn-save">Save</button>
