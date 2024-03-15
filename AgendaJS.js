@@ -6,6 +6,10 @@ class AgendaJS {
 		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
 		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
 		logToConsole: true,	// true, false,
+
+		fieldOne: 'name',
+		fieldTwo: 'phone',
+
 		colors: [
 			'#178bb2FF',
 			'#48B4A9FF',
@@ -16,10 +20,14 @@ class AgendaJS {
 		],
 		strings: {
 			allDayLabel: 'all-day',
-			createEventPopupField1Label: 'Name',
-			createEventPopupField2Label: 'Phone',
-			createEventPopupHeading: 'Event for',
-			createEventPopupTimeFormat: 'h:mm A, dddd, MMMM D, YYYY' // dayjs format, see https://day.js.org/docs/en/display/format
+			popup: {
+				fieldOneLabel: 'Name',
+				fieldTwoLabel: 'Phone',
+				heading: 'Event for',
+				timeFormat: 'h:mm A, dddd, MMMM D, YYYY', // dayjs format, see https://day.js.org/docs/en/display/format
+				saveBtnLabel: 'Save',
+				cancelBtnLabel: 'Cancel'
+			}
 		}
 	}
 
@@ -193,7 +201,7 @@ class AgendaJS {
 		for ( const ts in events ) {
 			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
 			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
-			badge.innerText = events[ts].name // + ' ' + events[ts].phone
+			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
 			badge.style.backgroundColor = colors.shift()
 		}
 			
@@ -211,10 +219,10 @@ class AgendaJS {
 		)
 		
 		for ( const ts in events ) {
-			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+			// if ( !colors.length ) colors = this.#_clone( this.#options.colors )
 			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
-			badge.innerText = events[ts].name + ' ' + events[ts].phone
-			badge.style.backgroundColor = colors.shift()
+			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
+			// badge.style.backgroundColor = colors.shift()
 		}
 
 		this.#_l( [events], 'Render day events badges' )
@@ -284,16 +292,23 @@ class AgendaJS {
 			this.#_r( 'div', ['_a-cell'], this.#aGrid )
 		
 		cells.forEach( obj => {
+
 			const halfHour = obj.minute() ? true : false
-			this.#_r( 'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
-				.innerText = obj.format( 'h:mm a' )
+
+			this.#_r(
+				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
+				this.#aGrid
+			)
+			.innerText = obj.format( 'h:mm a' )
+			
 			for ( let day = 0; day < hCells.length; day++ ) {
-				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid ),
-					btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 				
+				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+									
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
  
-				if ( !this.#eventsStorage[cell.dataset.ts] ) {
+				if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+					let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 					btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 					btnPlus.addEventListener( 'click', e => {
 						e.stopPropagation()
@@ -337,15 +352,21 @@ class AgendaJS {
 		this.#_r( 'div', ['_a-cell'], this.#aGrid )
 
 		cells.forEach( obj => {
+
 			const halfHour = obj.minute() ? true : false
-			this.#_r( 'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
-				.innerText = obj.format( 'h:mm a' )
+
+			this.#_r(
+				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
+				this.#aGrid
+			)
+			.innerText = obj.format( 'h:mm a' )
 			
-			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid ),
-				btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
+			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+				
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
-			if ( !this.#eventsStorage[cell.dataset.ts] ) {
+			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 				btnPlus.addEventListener( 'click', e => {
 					e.stopPropagation()
@@ -368,8 +389,11 @@ class AgendaJS {
 	}
 
 	#newEvent ( time ) {
+
 		if ( this.#popup ) return 
+
 		this.#popup = this.#_r( 'div', ['_a-popup-overlay'], this.#agendaRoot )
+
 		const
 			popup = this.#_r( 'div', ['_a-event-popup', '_a-flex', '_a-flex-column', '_a-p4'], this.#popup ),
 			save = () => {
@@ -377,57 +401,62 @@ class AgendaJS {
 					field1 = this.#popup.querySelector( '#_a-field-1' ),
 					field2 = this.#popup.querySelector( '#_a-field-2' )
 				
-				this.#popup.querySelectorAll( 'input' ).forEach( field => {
-					if ( !field.value.length ) {
-						field.classList.add( '_a-input-error' )
-						field.addEventListener( 'input', ( { target } ) => {
+				this.#popup.querySelectorAll( 'input' ).forEach( input => {
+					if ( !input.value.length ) {
+						input.classList.add( '_a-input-error' )
+						input.addEventListener( 'input', ( { target } ) => {
 							target.classList.remove( '_a-input-error' )
-							console.log( 'on input' )
 						}, { once: true } )
 					}
 				})
 				if ( !field1.value.length || !field2.value.length ) return
 
-				this.#eventsStorage[time] = { name: field1.value, phone: field2.value }
-				this.#fireEvnt( 'onNewEventCreated', { time, name: field1.value, phone: field2.value } )
+				this.#eventsStorage[time][this.#options.fieldOne] = field1.value
+				this.#eventsStorage[time][this.#options.fieldTwo] = field2.value
+
+				let event = { time }
+				event[this.#options.fieldOne] = field1.value
+				event[this.#options.fieldTwo] = field2.value
+				this.#fireEvt( 'onNewEventCreated', event )
+
 				close()
 				this.#preRender()
-				this.#_l( this.#eventsStorage, 'Event storage' )
+
+				this.#_l( this.#eventsStorage, 'Event created' )
 			},
 			close = () => {
 				document.removeEventListener( 'keydown', check )
 				this.#popup.remove()
 				this.#popup = null
 			},
-			check = ( event ) => {
-				if ( event.key === 'Escape' ) close()
+			check = (e) => {
+				if ( e.key === 'Escape' ) close()
 			}
 
-		const heading = this.#options.strings.createEventPopupHeading + ' ' + dayjs.unix( time ).format( this.#options.strings.createEventPopupTimeFormat )
+		const heading = this.#options.strings.popup.heading + ' ' + dayjs.unix( time ).format( this.#options.strings.popup.timeFormat )
 		
 		popup.innerHTML = `
 			<div class="_a-popup-heading">${ heading }</div>
 			<div class="_a-input-label _a-mt4">
 				<input type="text" id="_a-field-1" placeholder="">
-				<label for="_a-field-1">${ this.#options.strings.createEventPopupField1Label }</label>
+				<label for="_a-field-1">${ this.#options.strings.popup.fieldOneLabel }</label>
 			</div>
 			<div class="_a-input-label _a-mt4">
 				<input type="text" id="_a-field-2" placeholder="">
-				<label for="_a-field-2">${ this.#options.strings.createEventPopupField2Label }</label>
+				<label for="_a-field-2">${ this.#options.strings.popup.fieldTwoLabel }</label>
 			</div>
 			<div class="_a-flex _a-justify-space-evenly _a-mt4">
-				<button class="_a-btn _a-btn-primary _a-btn-save">Save</button>
-				<button class="_a-btn _a-btn-primary _a-btn-cancel">Cancel</button>
+				<button class="_a-btn _a-btn-primary _a-btn-save">${ this.#options.strings.popup.saveBtnLabel }</button>
+				<button class="_a-btn _a-btn-primary _a-btn-cancel">${ this.#options.strings.popup.cancelBtnLabel }</button>
 			</div>
 		`
-		
+
 		this.#popup.querySelector( '._a-btn-save' ).onclick = save
 		this.#popup.querySelector( '._a-btn-cancel' ).onclick = close
-		this.#popup.onkeydown = ( event ) => {
-			if ( event.key === 'Enter' ) save()
+		this.#popup.onkeydown = (e) => {
+			if ( e.key === 'Enter' ) save()
 		}
 		document.addEventListener( 'keydown', check)
-
 	}
 
 	// Helpers
@@ -466,21 +495,21 @@ class AgendaJS {
 		console.groupEnd()
 	}
 
-	#bindEvntListener ( eventName, callback ) {
+	#bindEvtListener ( eventName, callback ) {
 		if ( !this.#apiEvents[eventName] ) {
 			this.#apiEvents[eventName] = []
 		}
 		this.#apiEvents[eventName].push( callback )
 	}
 
-	#unbindEvntListener ( eventName, callback ) {
+	#unbindEvtListener ( eventName, callback ) {
 		if ( this.#apiEvents[eventName] ) {
 			this.#apiEvents[eventName] =
 				this.#apiEvents[eventName].filter( cb => cb !== callback )
 		}
 	}
 
-	#fireEvnt ( eventName, ...args ) {
+	#fireEvt ( eventName, ...args ) {
 		if ( this.#apiEvents[eventName] ) {
 			this.#apiEvents[eventName].forEach( callback => callback( ...args ) )
 		}
@@ -513,7 +542,7 @@ class AgendaJS {
 	}
 
 	onEventCreated ( callback ) {
-		this.#bindEvntListener( 'onNewEventCreated', callback )
+		this.#bindEvtListener( 'onNewEventCreated', callback )
 	}
 	
 }
