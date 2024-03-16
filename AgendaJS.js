@@ -68,7 +68,7 @@ class AgendaJS {
 		plugins.forEach( p => dayjs.extend( window[`dayjs_plugin_${ p }`] ) )
 		resolve()
 
-		this.#_l( ['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'Initialize dayJS' )
+		this.#_l( ['[Timezone:] ' + dayjs.tz.guess(), '[Locale:] ' + dayjs.locale()], 'dayJS has been initialized' )
 		
 	} )
 	
@@ -94,7 +94,7 @@ class AgendaJS {
 			this.events = this.#options.events :
 			this.#preRender()
 		
-		this.#_l( [[this.#agendaRoot], this], 'AgendaJS is initialized' )
+		this.#_l( this, 'AgendaJS has been initialized' )
 		
 	}
 
@@ -114,7 +114,7 @@ class AgendaJS {
 			</div>
 			`
 		toolbar.querySelector( '._a-view-switch' ).onclick = ( { target } ) => this.#preRender( { view: target.dataset.view } )
-		toolbar.querySelector( '._a-btn-now' ).onclick = () => this.#preRender( { time: dayjs() } )
+		toolbar.querySelector( '._a-btn-now' ).onclick = () => this.#preRender( { time: dayjs().startOf( 'D' ) } )
 		toolbar.querySelector( '._a-btn-prev' ).onclick = () => this.#preRender( { time: this.#datetime.subtract( 1, this.#view ) } )
 		toolbar.querySelector( '._a-btn-next' ).onclick = () => this.#preRender( { time: this.#datetime.add( 1, this.#view ) } )
 
@@ -154,57 +154,62 @@ class AgendaJS {
 
 	}
 
-	#monthEvents () {
-		
-		const
-			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
-			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
-			events = {}
-		
-		for ( let ts in this.#eventsStorage ) {
-			if ( ts >= min && ts <= max ) {
-				let date = dayjs.unix( ts ).startOf('date').unix()
-				if ( !events.hasOwnProperty( date ) ) events[date] = []
-				events[date].push(
-					Object.assign( this.#_clone( this.#eventsStorage[ts] ), { timestamp: ts } )
-				)
-			}
+	#dayView ( time ) {
+
+		console.log( 'dayView time', time )
+
+		let rowStart = dayjs( `1/1/1 ${ this.#options.dayStartAM }:00 AM` ),
+			rowEnd = dayjs( `1/1/1 ${ this.#options.dayEndPM }:00 PM` ),
+			heading = time.format( 'MMMM D, YYYY' ),
+			hCell = time.format( 'dddd' ),
+			cells = []
+
+		let rowTime = rowStart
+		cells.push( rowTime )
+		while ( rowTime.hour() < rowEnd.hour() ) {
+			rowTime = rowTime.add( 30, 'minute' )
+			cells.push( rowTime )
 		}
 
-		for ( let date in events ) {
-			let colors = this.#_clone( this.#options.colors ),
-				group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
-			
-			events[date].forEach( event => {
-				if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-				const badge = this.#_r( 'span', '_a-event-badge', group )
-				badge.innerText = dayjs.unix( event.timestamp ).format( 'h:mm A' )
-				badge.style.backgroundColor = colors.shift()
-			})
-		}
+		this.#setHeading( heading )
 
-		this.#_l( [events], 'Render month events badges' )
-	}
+		this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = hCell
 
-	#weekEvents () {
+		this.#_r( 'div', ['_a-cell', '_a-cell-label-vertical'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
+		this.#_r( 'div', ['_a-cell'], this.#aGrid )
 
-		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
-			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
-			colors = this.#_clone( this.#options.colors ),
-			events = Object.fromEntries(
-				Object.entries( this.#eventsStorage ).filter( ([ ts ]) =>  ts >= min && ts <= max )
+		cells.forEach( obj => {
+
+			const halfHour = obj.minute() ? true : false
+
+			this.#_r(
+				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
+				this.#aGrid
 			)
+				.innerText = obj.format( 'h:mm a' )
 
-		for ( const ts in events ) {
-			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-			let badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
-			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
-			badge.style.backgroundColor = colors.shift()
-		}
-			
-		this.#_l( [events], 'Render week events badges' )
+			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+
+			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
+
+			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
+				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+				btnPlus.addEventListener( 'click', e => {
+					e.stopPropagation()
+					this.#newEvent( cell.dataset.ts )
+				} )
+			}
+
+			cell.onmouseenter = () =>
+				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
+			cell.onmouseleave = () =>
+				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.remove( '_a-cell-row-hover' )
+		} )
+
+		this.#_l( [cells], 'Day grid has been rendered' )
+
 	}
-
 	#dayEvents () {
 		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
@@ -212,12 +217,15 @@ class AgendaJS {
 				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
 			)
 		
+		console.log('evts to output', events)
+		
 		for ( const ts in events ) {
+			console.log('ts', ts)
 			const badge = this.#_r( 'span', ['_a-event-badge'], this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
 			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
 		}
 
-		this.#_l( [events], 'Render day events badges' )
+		this.#_l( [events], 'Render events badges' )
 	}
 
 	#monthView ( time ) {
@@ -247,7 +255,7 @@ class AgendaJS {
 			cell.onclick = () => this.#preRender( { time: obj, view: 'day' } )
 		} )
 			
-		this.#_l( [hCells, cells], 'Month grid' )
+		this.#_l( [hCells, cells], 'Month grid has been rendered ' )
 
 	}
 
@@ -318,62 +326,58 @@ class AgendaJS {
 			}
 		} )
 
-		this.#_l( [hCells, cells], 'Week grid' )
+		this.#_l( [hCells, cells], 'Week grid has been rendered' )
 	}
 
-	#dayView ( time ) {
+	#monthEvents () {
 
-		let rowStart = dayjs( `1/1/1 ${ this.#options.dayStartAM }:00 AM` ),
-			rowEnd = dayjs( `1/1/1 ${ this.#options.dayEndPM }:00 PM` ),
-			heading = time.format( 'MMMM D, YYYY' ),
-			hCell = time.format( 'dddd' ),
-			cells = []
-	
-		let rowTime = rowStart
-		cells.push( rowTime )
-		while ( rowTime.hour() < rowEnd.hour() ) {
-			rowTime = rowTime.add( 30, 'minute' )
-			cells.push( rowTime )
+		const
+			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			events = {}
+
+		for ( let ts in this.#eventsStorage ) {
+			if ( ts >= min && ts <= max ) {
+				let date = dayjs.unix( ts ).startOf( 'date' ).unix()
+				if ( !events.hasOwnProperty( date ) ) events[date] = []
+				events[date].push(
+					Object.assign( this.#_clone( this.#eventsStorage[ts] ), { timestamp: ts } )
+				)
+			}
 		}
 
-		this.#setHeading( heading )
+		for ( let date in events ) {
+			let colors = this.#_clone( this.#options.colors ),
+				group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
 
-		this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = hCell
-		
-		this.#_r( 'div', ['_a-cell', '_a-cell-label-vertical'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
-		this.#_r( 'div', ['_a-cell'], this.#aGrid )
+			events[date].forEach( event => {
+				if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+				const badge = this.#_r( 'span', '_a-event-badge', group )
+				badge.innerText = dayjs.unix( event.timestamp ).format( 'h:mm A' )
+				badge.style.backgroundColor = colors.shift()
+			} )
+		}
 
-		cells.forEach( obj => {
+		this.#_l( [events], 'Render events badges' )
+	}
 
-			const halfHour = obj.minute() ? true : false
+	#weekEvents () {
 
-			this.#_r(
-				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
-				this.#aGrid
+		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			colors = this.#_clone( this.#options.colors ),
+			events = Object.fromEntries(
+				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
 			)
-			.innerText = obj.format( 'h:mm a' )
-			
-			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
-				
-			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
-			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
-				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
-				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
-				btnPlus.addEventListener( 'click', e => {
-					e.stopPropagation()
-					this.#newEvent( cell.dataset.ts )
-				} )
-			}
+		for ( const ts in events ) {
+			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+			let badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
+			badge.style.backgroundColor = colors.shift()
+		}
 
-			cell.onmouseenter = () =>
-				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
-			cell.onmouseleave = () =>
-				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.remove( '_a-cell-row-hover' )
-		} )
-
-		this.#_l( [cells], 'Day grid' )
-
+		this.#_l( [events], 'Render events badges' )
 	}
 
 	#setHeading ( str ) {
@@ -517,7 +521,7 @@ class AgendaJS {
 			if ( this.#initialized ) {
 				clearInterval( interval )
 				this.#eventsStorage = value
-				this.#_l( [this.#eventsStorage], 'Load events' )
+				this.#_l( [this.#eventsStorage], 'Events loaded' )
 				this.#preRender()
 			}
 		}, 25 )

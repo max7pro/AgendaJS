@@ -59,14 +59,9 @@
 }
 
 ._a-btn {
-	display: inline-flex;
-	padding-left: 15px;
-	padding-right: 15px;
-	height: 30px;
-	line-height: 30px;
-	background-color: rgba(46, 51, 56, 0.05);
-	color: rgb(57, 68, 71);
-	cursor: pointer;
+	display: inline-flex; padding-left: 15px; padding-right: 15px; height: 30px;
+	line-height: 30px; background-color: rgba(46, 51, 56, 0.05); color: rgb(57, 68, 71); cursor: pointer;
+	user-select: none;
 }
 ._a-btn:hover {
 	background-color: rgba(46, 51, 56, 0.073);
@@ -85,6 +80,9 @@
 	background-color: rgb(23, 139, 178);
 }
 
+._a-canvas * {
+	box-sizing: border-box;
+}
 ._a-canvas {
 	color: #6f6f6f;
 }
@@ -143,8 +141,11 @@
 	cursor: pointer; width: 16px;
 }
 
+._a-cell-half-hour {
+	border-top: 1px dotted #e1e1e1;
+}
 ._a-cell-label-vertical._a-cell-half-hour {
-	border-top: 1px dotted #e1e1e1; color: transparent;
+	color: transparent;
 }
 ._a-cell-label-vertical._a-cell-half-hour:hover,
 ._a-cell-half-hour._a-cell-row-hover {
