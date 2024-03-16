@@ -194,11 +194,10 @@ class AgendaJS {
 				)
 				if ( Object.keys( events ).length )
 					this.#fireEvt( 'onDateSaved', events )
+				this.#freezedDates.push( time.unix() )
+				this.#preRender()
 			}
 		}
-
-		
-		
 
 		cells.forEach( obj => {
 
@@ -213,7 +212,11 @@ class AgendaJS {
 			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
-			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+			if (
+				cell.dataset.ts > dayjs().unix() &&
+				!this.#eventsStorage[cell.dataset.ts] &&
+				!this.#freezedDates.includes( time.unix() )
+			) {
 
 				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
@@ -323,17 +326,17 @@ class AgendaJS {
 				let cell = this.#_r( 'div', '_a-cell _a-flex _a-flex-align-center' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
  
-				if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+				if (
+					cell.dataset.ts > dayjs().unix() &&
+					!this.#eventsStorage[cell.dataset.ts] &&
+					!this.#freezedDates.includes( hCells[day].unix() )
+				) {
 					let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 					btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
 					btnPlus.addEventListener( 'click', e => {
 						e.stopPropagation()
 						this.#newEvent( cell.dataset.ts )
 					} )
-				}
-
-				if ( this.#freezedDates.includes( hCells[day].unix() ) ) {
-					this.#_r( 'span', ['_a-test'], cell ).innerText = 'Frz'
 				}
 				
 				cell.onclick = () =>
