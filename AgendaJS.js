@@ -184,7 +184,7 @@ class AgendaJS {
 				'div', '_a-cell _a-right-align' + ( halfHour ? ' _a-label-30-mins' : '' ),
 				this.#aGrid
 			)
-				.innerText = obj.format( 'h:mm a' )
+			.innerText = obj.format( 'h:mm a' )
 
 			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
@@ -253,11 +253,20 @@ class AgendaJS {
 		)
 
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
-		for ( let cell = 1; cell <= hCells.length; cell++ ) {
-
-			this.#_r( 'div', ['_a-cell'], this.#aGrid ).innerText='Save'
+		for ( let cell = 0; cell < hCells.length; cell++ ) {
+			let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
+			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
+			btn.innerText = 'Save'
+			btn.dataset.ts1 = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+			btn.dataset.ts2 = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+			btn.onclick = () => this.#fireEvt(
+				'onDateSaved',
+				Object.fromEntries(
+					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.ts1 && ts <= btn.dataset.ts2 )
+			) )
+			
 		}
-		
+
 		cells.forEach( obj => {
 
 			const halfHour = obj.minute() ? true : false
@@ -536,6 +545,10 @@ class AgendaJS {
 
 	onEventCreated ( callback ) {
 		this.#bindEvtListener( 'onNewEventCreated', callback )
+	}
+
+	onDateSaved ( callback ) {
+		this.#bindEvtListener( 'onDateSaved', callback )
 	}
 	
 }

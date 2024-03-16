@@ -27,6 +27,10 @@
 			localStorage.setItem('_agendajs-events', JSON.stringify(agenda.events))
 		})
 
+		agenda.onDateSaved( e => {
+			console.log( 'Day events created', e )
+		} )
+
 		
 
 	</script>
