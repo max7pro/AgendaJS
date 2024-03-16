@@ -1,12 +1,12 @@
 class AgendaJS {
 	#options = {
-		events: {},
 		defaultView: 'month',  // month, week, day
 		firstIsSunday: false, // true, false
 		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
 		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
 		logToConsole: true,	// true, false,
 
+		events: {},
 		fieldOne: 'name',
 		fieldTwo: 'phone',
 
@@ -161,19 +161,18 @@ class AgendaJS {
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
 			events = {}
 		
-		for ( const ts in this.#eventsStorage ) {
+		for ( let ts in this.#eventsStorage ) {
 			if ( ts >= min && ts <= max ) {
-				const date = dayjs.unix( ts ).startOf('date').unix()
+				let date = dayjs.unix( ts ).startOf('date').unix()
 				if ( !events.hasOwnProperty( date ) ) events[date] = []
 				events[date].push(
-					Object.assign( this.#eventsStorage[ts], { timestamp: ts } )
+					Object.assign( this.#_clone( this.#eventsStorage[ts] ), { timestamp: ts } )
 				)
 			}
 		}
 
-		for ( const date in events ) {
-			const
-				colors = this.#_clone( this.#options.colors ),
+		for ( let date in events ) {
+			let colors = this.#_clone( this.#options.colors ),
 				group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
 			
 			events[date].forEach( event => {
@@ -189,18 +188,16 @@ class AgendaJS {
 
 	#weekEvents () {
 
-		const
-			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
-			colors = this.#_clone( this.#options.colors )
-			
-		const events = Object.fromEntries(
-			Object.entries( this.#eventsStorage ).filter( ([ ts ]) =>  ts >= min && ts <= max )
-		)
+			colors = this.#_clone( this.#options.colors ),
+			events = Object.fromEntries(
+				Object.entries( this.#eventsStorage ).filter( ([ ts ]) =>  ts >= min && ts <= max )
+			)
 
 		for ( const ts in events ) {
 			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			let badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
 			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
 			badge.style.backgroundColor = colors.shift()
 		}
@@ -209,20 +206,15 @@ class AgendaJS {
 	}
 
 	#dayEvents () {
-		const
-			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
-			colors = this.#_clone( this.#options.colors )
-		
-		const events = Object.fromEntries(
-			Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
-		)
+			events = Object.fromEntries(
+				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
+			)
 		
 		for ( const ts in events ) {
-			// if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-			const badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			const badge = this.#_r( 'span', ['_a-event-badge'], this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
 			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
-			// badge.style.backgroundColor = colors.shift()
 		}
 
 		this.#_l( [events], 'Render day events badges' )
@@ -398,8 +390,8 @@ class AgendaJS {
 			popup = this.#_r( 'div', ['_a-event-popup', '_a-flex', '_a-flex-column', '_a-p4'], this.#popup ),
 			save = () => {
 				const
-					field1 = this.#popup.querySelector( '#_a-field-1' ),
-					field2 = this.#popup.querySelector( '#_a-field-2' )
+					field1 = this.#popup.querySelector( '._a-input-label > input' ),
+					field2 = this.#popup.querySelector( '._a-input-label + ._a-input-label > input' )
 				
 				this.#popup.querySelectorAll( 'input' ).forEach( input => {
 					if ( !input.value.length ) {
@@ -410,7 +402,8 @@ class AgendaJS {
 					}
 				})
 				if ( !field1.value.length || !field2.value.length ) return
-
+				
+				this.#eventsStorage[time] = {}
 				this.#eventsStorage[time][this.#options.fieldOne] = field1.value
 				this.#eventsStorage[time][this.#options.fieldTwo] = field2.value
 
@@ -438,12 +431,12 @@ class AgendaJS {
 		popup.innerHTML = `
 			<div class="_a-popup-heading">${ heading }</div>
 			<div class="_a-input-label _a-mt4">
-				<input type="text" id="_a-field-1" placeholder="">
-				<label for="_a-field-1">${ this.#options.strings.popup.fieldOneLabel }</label>
+				<input type="text" placeholder="">
+				<label >${ this.#options.strings.popup.fieldOneLabel }</label>
 			</div>
 			<div class="_a-input-label _a-mt4">
-				<input type="text" id="_a-field-2" placeholder="">
-				<label for="_a-field-2">${ this.#options.strings.popup.fieldTwoLabel }</label>
+				<input type="text" placeholder="">
+				<label>${ this.#options.strings.popup.fieldTwoLabel }</label>
 			</div>
 			<div class="_a-flex _a-justify-space-evenly _a-mt4">
 				<button class="_a-btn _a-btn-primary _a-btn-save">${ this.#options.strings.popup.saveBtnLabel }</button>
