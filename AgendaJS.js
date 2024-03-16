@@ -1,6 +1,6 @@
 class AgendaJS {
 	#options = {
-		defaultView: 'month',  // month, week, day
+		defaultView: 'week',  // month, week, day
 		firstIsSunday: false, // true, false
 		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
 		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
@@ -138,15 +138,15 @@ class AgendaJS {
 		// eval( `this.#${ this.#view }View( this.#datetime )` )
 		switch ( this.#view ) {
 			case 'month':
-				this.#monthView( this.#datetime )
+				this.#monthGrid( this.#datetime )
 				this.#monthEvents()
 				break
 			case 'week':
-				this.#weekView( this.#datetime )
+				this.#weekGrid( this.#datetime )
 				this.#weekEvents()
 				break
 			case 'day':
-				this.#dayView( this.#datetime )
+				this.#dayGrid( this.#datetime )
 				this.#dayEvents()
 				break
 			default: return
@@ -154,9 +154,7 @@ class AgendaJS {
 
 	}
 
-	#dayView ( time ) {
-
-		console.log( 'dayView time', time )
+	#dayGrid ( time ) {
 
 		let rowStart = dayjs( `1/1/1 ${ this.#options.dayStartAM }:00 AM` ),
 			rowEnd = dayjs( `1/1/1 ${ this.#options.dayEndPM }:00 PM` ),
@@ -211,55 +209,23 @@ class AgendaJS {
 
 	}
 	#dayEvents () {
+
 		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
 			events = Object.fromEntries(
 				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
 			)
 		
-		console.log('evts to output', events)
-		
-		for ( const ts in events ) {
-			console.log('ts', ts)
-			const badge = this.#_r( 'span', ['_a-event-badge'], this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
-			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
+		for ( const ts in events ) {			
+			this.#aGrid.querySelector( `[data-ts="${ ts }"]` ).innerText =
+				`${ this.#options.strings.popup.fieldOneLabel }: ${ events[ts][this.#options.fieldOne] }` +
+				` ${ this.#options.strings.popup.fieldTwoLabel }: ${ events[ts][this.#options.fieldTwo] }`
 		}
 
 		this.#_l( [events], 'Render events badges' )
 	}
 
-	#monthView ( time ) {
-						
-		const
-			start = time.startOf( 'month' ).startOf( 'week' ),
-			end = time.endOf( 'month' ).endOf( 'week' ),
-			diff = end.diff( start, 'day' ),
-			heading = time.format( 'MMMM YYYY' ),
-			cells = [],
-			hCells = this.#options.firstIsSunday ?
-				dayjs.weekdaysShort() :
-				dayjs.weekdaysShort().slice( -6 ).concat( dayjs.weekdaysShort().shift() )
-
-		while ( cells.length <= diff )
-			cells.push( start.add( cells.length, 'day' ) )
-		
-		this.#setHeading( heading )
-				
-		hCells.forEach( label =>
-			this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = label
-		)
-		cells.forEach( obj => {
-			const cell = this.#_r( 'div', ['_a-cell'], this.#aGrid )
-			cell.innerText = obj.date()
-			cell.dataset.ts = obj.unix()
-			cell.onclick = () => this.#preRender( { time: obj, view: 'day' } )
-		} )
-			
-		this.#_l( [hCells, cells], 'Month grid has been rendered ' )
-
-	}
-
-	#weekView ( time ) {
+	#weekGrid ( time ) {
 				
 		let start = time.startOf( 'week' ),
 			end = time.endOf( 'week' ),
@@ -303,7 +269,7 @@ class AgendaJS {
 			
 			for ( let day = 0; day < hCells.length; day++ ) {
 				
-				let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
+				let cell = this.#_r( 'div', '_a-cell _a-flex-align-center _a-flex' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
 									
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
  
@@ -328,7 +294,55 @@ class AgendaJS {
 
 		this.#_l( [hCells, cells], 'Week grid has been rendered' )
 	}
+	#weekEvents () {
 
+		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
+			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
+			colors = this.#_clone( this.#options.colors ),
+			events = Object.fromEntries(
+				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
+			)
+
+		for ( const ts in events ) {
+			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
+			let badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
+			badge.innerHTML = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
+			badge.style.backgroundColor = colors.shift()
+		}
+
+		this.#_l( [events], 'Render events badges' )
+	}
+
+	#monthGrid ( time ) {
+
+		const
+			start = time.startOf( 'month' ).startOf( 'week' ),
+			end = time.endOf( 'month' ).endOf( 'week' ),
+			diff = end.diff( start, 'day' ),
+			heading = time.format( 'MMMM YYYY' ),
+			cells = [],
+			hCells = this.#options.firstIsSunday ?
+				dayjs.weekdaysShort() :
+				dayjs.weekdaysShort().slice( -6 ).concat( dayjs.weekdaysShort().shift() )
+
+		while ( cells.length <= diff )
+			cells.push( start.add( cells.length, 'day' ) )
+
+		this.#setHeading( heading )
+
+		hCells.forEach( label =>
+			this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = label
+		)
+		cells.forEach( obj => {
+			const cell = this.#_r( 'div', ['_a-cell'], this.#aGrid )
+			cell.innerText = obj.date()
+			cell.dataset.ts = obj.unix()
+			cell.onclick = () => this.#preRender( { time: obj, view: 'day' } )
+		} )
+
+		this.#_l( [hCells, cells], 'Month grid has been rendered ' )
+
+	}
 	#monthEvents () {
 
 		const
@@ -348,7 +362,7 @@ class AgendaJS {
 
 		for ( let date in events ) {
 			let colors = this.#_clone( this.#options.colors ),
-				group = this.#_r( 'span', '_a-cell-events _a-flex _a-flex-column', this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
+				group = this.#_r( 'span', ['_a-events-group', '_a-flex', '_a-flex-column'], this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
 
 			events[date].forEach( event => {
 				if ( !colors.length ) colors = this.#_clone( this.#options.colors )
@@ -361,25 +375,7 @@ class AgendaJS {
 		this.#_l( [events], 'Render events badges' )
 	}
 
-	#weekEvents () {
-
-		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
-			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
-			colors = this.#_clone( this.#options.colors ),
-			events = Object.fromEntries(
-				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
-			)
-
-		for ( const ts in events ) {
-			if ( !colors.length ) colors = this.#_clone( this.#options.colors )
-			let badge = this.#_r( 'span', '_a-event-badge', this.#aGrid.querySelector( `[data-ts="${ ts }"]` ) )
-			badge.innerText = events[ts][this.#options.fieldOne] + ' ' + events[ts][this.#options.fieldTwo]
-			badge.style.backgroundColor = colors.shift()
-		}
-
-		this.#_l( [events], 'Render events badges' )
-	}
-
+	
 	#setHeading ( str ) {
 		this.#agendaRoot.querySelector( '._a-heading' ).innerText = str
 	}

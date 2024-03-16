@@ -57,6 +57,9 @@
 ._a-justify-space-evenly {
 	justify-content: space-evenly;
 }
+._a-flex-align-center {
+	align-items: center;
+}
 
 ._a-btn {
 	display: inline-flex; padding-left: 15px; padding-right: 15px; height: 30px;
@@ -94,15 +97,17 @@
 	grid-template-columns: repeat(7, 1fr);
 }
 ._a-grid._a-grid-week { 
-	grid-template-columns: auto repeat(7, 1fr);
+	grid-template-columns: auto repeat(7, minmax(0, 1fr));
 }
 ._a-grid._a-grid-day {
 	grid-template-columns: auto 1fr;
 }
 
 ._a-cell {
-	position: relative;
-	padding: 5px; border-top: 1px solid #e1e1e1; border-left: 1px solid #e1e1e1;
+	padding: 5px; position: relative; border-top: 1px solid #e1e1e1; border-left: 1px solid #e1e1e1;
+}
+._a-cell[data-ts]:hover {
+	background-color: #f0f8ff;
 }
 ._a-cell-label-horizontal {
 	text-align: center; 
@@ -111,20 +116,14 @@
 	border-left: 0;
 }
 ._a-cell-label-vertical {
-	text-align: right; height: 1rem;
+	text-align: right;
 }
 
 ._a-grid-month ._a-cell[data-ts] {
-	height: 100px;
-	text-align: right; cursor: pointer;
-}
-
-._a-grid-week ._a-cell,
-._a-grid-day ._a-cell {
-	height: 25px;
+	height: 100px; text-align: right; 
 }
 ._a-grid-week ._a-cell[data-ts] {
-	cursor: pointer;
+	padding: 3px;  
 }
 
 ._a-grid-day ._a-cell-label-horizontal {
@@ -149,19 +148,21 @@
 }
 ._a-cell-label-vertical._a-cell-half-hour:hover,
 ._a-cell-half-hour._a-cell-row-hover {
-	color: #6f6f6f; font-size: .8em;
+	color: #6f6f6f; 
 }
 
-
-._a-cell-events {
+._a-event-badge {
+	color: #fff; display: inline-block;
+}
+._a-events-group {
 	position: absolute; top: 0; left: 0; padding-left: 3px; padding-top: 2px;
 }
-._a-cell-events ._a-event-badge {
-	margin-bottom: 1px; padding: 0 3px; color: #fff; font-size: 0.9em;
+._a-events-group ._a-event-badge {
+	margin-bottom: 1px; padding: 0 3px; font-size: 0.8em;
 }
 ._a-grid-week ._a-event-badge {
-	position: absolute; right: 3px; top: 3px; padding: 0 3px; 
-	color: #fff; font-size: 0.9em;
+	max-width: 100%; padding: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	font-size: 0.9em; line-height: 1.5em;
 }
 
 
