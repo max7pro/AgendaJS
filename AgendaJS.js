@@ -171,9 +171,9 @@ class AgendaJS {
 
 		this.#setHeading( heading )
 
-		this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = hCell
+		this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid ).innerText = hCell
 
-		this.#_r( 'div', ['_a-cell', '_a-cell-label-vertical'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
+		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
 		this.#_r( 'div', ['_a-cell'], this.#aGrid )
 
 		cells.forEach( obj => {
@@ -181,13 +181,12 @@ class AgendaJS {
 			const halfHour = obj.minute() ? true : false
 
 			this.#_r(
-				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
+				'div', '_a-cell _a-right-align' + ( halfHour ? ' _a-label-30-mins' : '' ),
 				this.#aGrid
 			)
 				.innerText = obj.format( 'h:mm a' )
 
-			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
-
+			let cell = this.#_r( 'div', '_a-cell' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
 			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
@@ -200,9 +199,9 @@ class AgendaJS {
 			}
 
 			cell.onmouseenter = () =>
-				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
+				this.#_getPrvsSblng( cell, '_a-right-align' ).classList.add( '_a-row-hover' )
 			cell.onmouseleave = () =>
-				this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.remove( '_a-cell-row-hover' )
+				this.#_getPrvsSblng( cell, '_a-right-align' ).classList.remove( '_a-row-hover' )
 		} )
 
 		this.#_l( [cells], 'Day grid has been rendered' )
@@ -250,27 +249,28 @@ class AgendaJS {
 
 		this.#_r( 'div', ['_a-cell'], this.#aGrid )
 		hCells.forEach( label =>
-			this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = label.format( 'ddd D' )
+			this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid ).innerText = label.format( 'ddd D' )
 		)
 
-		this.#_r( 'div', ['_a-cell', '_a-cell-label-vertical'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
-		for ( let cell = 1; cell <= hCells.length; cell++ )
-			this.#_r( 'div', ['_a-cell'], this.#aGrid )
+		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
+		for ( let cell = 1; cell <= hCells.length; cell++ ) {
+
+			this.#_r( 'div', ['_a-cell'], this.#aGrid ).innerText='Save'
+		}
 		
 		cells.forEach( obj => {
 
 			const halfHour = obj.minute() ? true : false
 
 			this.#_r(
-				'div', '_a-cell _a-cell-label-vertical' + ( halfHour ? ' _a-cell-half-hour' : '' ),
+				'div', '_a-cell _a-right-align' + ( halfHour ? ' _a-label-30-mins' : '' ),
 				this.#aGrid
 			)
 			.innerText = obj.format( 'h:mm a' )
 			
 			for ( let day = 0; day < hCells.length; day++ ) {
 				
-				let cell = this.#_r( 'div', '_a-cell _a-flex-align-center _a-flex' + ( halfHour ? ' _a-cell-half-hour' : '' ), this.#aGrid )
-									
+				let cell = this.#_r( 'div', '_a-cell _a-flex _a-flex-align-center' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
  
 				if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
@@ -286,9 +286,9 @@ class AgendaJS {
 					this.#preRender( { time: hCells[day], view: 'day' } )
 				}
 				cell.onmouseenter = () =>
-					this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.add( '_a-cell-row-hover' )
+					this.#_getPrvsSblng( cell, '_a-right-align' ).classList.add( '_a-row-hover' )
 				cell.onmouseleave = () =>
-					this.#_getPrvsSblng( cell, '_a-cell-label-vertical' ).classList.remove( '_a-cell-row-hover' )
+					this.#_getPrvsSblng( cell, '_a-right-align' ).classList.remove( '_a-row-hover' )
 			}
 		} )
 
@@ -331,7 +331,7 @@ class AgendaJS {
 		this.#setHeading( heading )
 
 		hCells.forEach( label =>
-			this.#_r( 'div', ['_a-cell', '_a-cell-label-horizontal'], this.#aGrid ).innerText = label
+			this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid ).innerText = label
 		)
 		cells.forEach( obj => {
 			const cell = this.#_r( 'div', ['_a-cell'], this.#aGrid )
@@ -473,9 +473,9 @@ class AgendaJS {
 	}
 
 	#_getPrvsSblng (element, className) {
-		while (element) {
+		while ( element ) {
 			element = element.previousElementSibling;
-			if ( element && element.classList.contains(className) )
+			if ( element && element.classList.contains( className ) )
 				return element;
 		}
 		return null;
