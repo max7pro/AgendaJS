@@ -134,13 +134,13 @@
 }
 ._a-cell ._a-cell-btn-plus {
 	display: none;
-	position: absolute; top: 0; left: 0;
+	/* position: absolute; top: 0; left: 0; */
 }
 ._a-cell:hover ._a-cell-btn-plus {
-	display: block;
+	display: initial;
 }
 ._a-cell-btn-plus img {
-	cursor: pointer; width: 16px;
+	cursor: pointer; display: block; width: 22px;
 }
 
 ._a-cell-30-mins,
@@ -162,7 +162,7 @@
 	position: absolute; top: 0; left: 0; padding-left: 3px; padding-top: 2px;
 }
 ._a-events-group ._a-event-badge {
-	margin-bottom: 1px; padding: 0 3px; font-size: 0.8em;
+	margin-bottom: 1px; padding: 2px 5px; font-size: 0.8em;
 }
 ._a-grid-week ._a-event-badge {
 	max-width: 100%; padding: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

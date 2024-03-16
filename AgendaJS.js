@@ -63,7 +63,7 @@ class AgendaJS {
 				'https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js',
 				...plugins.map( p => `https://cdn.jsdelivr.net/npm/dayjs@1/plugin/${ p }.js` )
 			]
-
+		
 		for ( const url of imports ) await import( url )
 		plugins.forEach( p => dayjs.extend( window[`dayjs_plugin_${ p }`] ) )
 		resolve()
@@ -94,6 +94,8 @@ class AgendaJS {
 			this.events = this.#options.events :
 			this.#preRender()
 		
+		this.#initialized = true
+		
 		this.#_l( this, 'AgendaJS has been initialized' )
 		
 	}
@@ -117,8 +119,7 @@ class AgendaJS {
 		toolbar.querySelector( '._a-btn-now' ).onclick = () => this.#preRender( { time: dayjs().startOf( 'D' ) } )
 		toolbar.querySelector( '._a-btn-prev' ).onclick = () => this.#preRender( { time: this.#datetime.subtract( 1, this.#view ) } )
 		toolbar.querySelector( '._a-btn-next' ).onclick = () => this.#preRender( { time: this.#datetime.add( 1, this.#view ) } )
-
-		this.#initialized = true
+		
 	}
 
 	#preRender ( { view, time } = {} ) {
@@ -151,7 +152,6 @@ class AgendaJS {
 				break
 			default: return
 		}
-
 	}
 
 	#dayGrid ( time ) {
@@ -174,7 +174,20 @@ class AgendaJS {
 		this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid ).innerText = hCell
 
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
-		this.#_r( 'div', ['_a-cell'], this.#aGrid )
+		// this.#_r( 'div', ['_a-cell'], this.#aGrid )
+
+		let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
+		btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
+		btn.innerText = 'Save'
+		btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+		btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+		btn.onclick = () => {
+			const events = Object.fromEntries(
+				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
+			)
+			if ( Object.keys( events ).length )
+				this.#fireEvt( 'onDateSaved', events )
+		}
 
 		cells.forEach( obj => {
 
@@ -257,13 +270,15 @@ class AgendaJS {
 			let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
 			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
 			btn.innerText = 'Save'
-			btn.dataset.ts1 = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
-			btn.dataset.ts2 = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
-			btn.onclick = () => this.#fireEvt(
-				'onDateSaved',
-				Object.fromEntries(
-					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.ts1 && ts <= btn.dataset.ts2 )
-			) )
+			btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+			btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+			btn.onclick = () => {
+				const events = Object.fromEntries(
+					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
+				)
+				if ( Object.keys( events ).length ) 
+					this.#fireEvt( 'onDateSaved', events )
+			}
 			
 		}
 
@@ -383,7 +398,6 @@ class AgendaJS {
 
 		this.#_l( [events], 'Render events badges' )
 	}
-
 	
 	#setHeading ( str ) {
 		this.#agendaRoot.querySelector( '._a-heading' ).innerText = str
@@ -503,14 +517,12 @@ class AgendaJS {
 		}
 		this.#apiEvents[eventName].push( callback )
 	}
-
 	#unbindEvtListener ( eventName, callback ) {
 		if ( this.#apiEvents[eventName] ) {
 			this.#apiEvents[eventName] =
 				this.#apiEvents[eventName].filter( cb => cb !== callback )
 		}
 	}
-
 	#fireEvt ( eventName, ...args ) {
 		if ( this.#apiEvents[eventName] ) {
 			this.#apiEvents[eventName].forEach( callback => callback( ...args ) )
@@ -520,7 +532,6 @@ class AgendaJS {
 	get events () {
 		return this.#eventsStorage
 	}
-
 	set events ( value ) {
 		let interval = setInterval( () => {
 			if ( this.#initialized ) {
@@ -538,7 +549,6 @@ class AgendaJS {
 	async loadEvents ( events ) {
 		this.events = events
 	}
-
 	readEvents ( events ) {
 		return this.#eventsStorage
 	}
@@ -546,7 +556,6 @@ class AgendaJS {
 	onEventCreated ( callback ) {
 		this.#bindEvtListener( 'onNewEventCreated', callback )
 	}
-
 	onDateSaved ( callback ) {
 		this.#bindEvtListener( 'onDateSaved', callback )
 	}

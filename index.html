@@ -18,9 +18,10 @@
 		// let agenda = new AgendaJS('#agenda-js', {
 		// 	events: JSON.parse( localStorage.getItem('_agendajs-events') )
 		// })
+
 		let agenda = new AgendaJS( '#agenda-js' )
-		agenda.events = JSON.parse( localStorage.getItem( '_agendajs-events' ) )
-		// agenda.loadEvents( JSON.parse( localStorage.getItem( '_agendajs-events' ) ) )
+		// agenda.events = JSON.parse( localStorage.getItem( '_agendajs-events' ) )
+		agenda.loadEvents( JSON.parse( localStorage.getItem( '_agendajs-events' ) ) )
 
 		agenda.onEventCreated( e => {
 			console.log( 'Event successfully created', e )
@@ -28,7 +29,7 @@
 		})
 
 		agenda.onDateSaved( e => {
-			console.log( 'Day events created', e )
+			console.log( 'Day events extracted', e )
 		} )
 
 		
