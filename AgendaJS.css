@@ -87,6 +87,9 @@
 	color: rgb(218, 236, 243);
 	background-color: rgb(23, 139, 178);
 }
+._a-btn._a-btn-inactive {
+	color: rgba(46, 51, 56); cursor: not-allowed;
+}
 ._a-btn._a-btn-link {
 	height: initial; padding: 0; border: none;
 	background-color: transparent; line-height: initial;

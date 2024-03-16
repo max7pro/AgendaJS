@@ -39,6 +39,7 @@ class AgendaJS {
 	#popup = null
 	#datetime
 	#eventsStorage = {}
+	#freezedDates = []
 
 	#colors
 	#icons = {
@@ -176,18 +177,28 @@ class AgendaJS {
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
 		// this.#_r( 'div', ['_a-cell'], this.#aGrid )
 
+		const isActive = Object.keys( this.#eventsStorage ).some( ts =>
+			time.startOf( 'date' ).unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
+		)
 		let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
-		btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
-		btn.innerText = 'Save'
-		btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
-		btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
-		btn.onclick = () => {
-			const events = Object.fromEntries(
-				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
-			)
-			if ( Object.keys( events ).length )
-				this.#fireEvt( 'onDateSaved', events )
+		if (isActive) {
+			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
+
+			btn.innerText = 'Save'
+			btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+			btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+
+			btn.onclick = () => {
+				const events = Object.fromEntries(
+					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
+				)
+				if ( Object.keys( events ).length )
+					this.#fireEvt( 'onDateSaved', events )
+			}
 		}
+
+		
+		
 
 		cells.forEach( obj => {
 
@@ -203,8 +214,10 @@ class AgendaJS {
 			cell.dataset.ts = time.hour( obj.hour() ).minute( obj.minute() ).unix()
 
 			if ( cell.dataset.ts > dayjs().unix() && !this.#eventsStorage[cell.dataset.ts] ) {
+
 				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 				btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
+
 				btnPlus.addEventListener( 'click', e => {
 					e.stopPropagation()
 					this.#newEvent( cell.dataset.ts )
@@ -266,20 +279,33 @@ class AgendaJS {
 		)
 
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
+
 		for ( let cell = 0; cell < hCells.length; cell++ ) {
-			let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
-			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
-			btn.innerText = 'Save'
-			btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
-			btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
-			btn.onclick = () => {
-				const events = Object.fromEntries(
-					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
-				)
-				if ( Object.keys( events ).length ) 
-					this.#fireEvt( 'onDateSaved', events )
-			}
+
+			const isActive = Object.keys( this.#eventsStorage ).some( ts =>
+				hCells[cell].startOf( 'date' ).unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
+			)
 			
+			let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
+			
+			if ( isActive ) {
+
+				btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
+
+				btn.innerText = 'Save'
+				btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+				btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+				btn.onclick = () => {
+					const events = Object.fromEntries(
+						Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
+					)
+					if ( Object.keys( events ).length )
+						this.#fireEvt( 'onDateSaved', events )
+					this.#freezedDates.push( hCells[cell].unix() )
+					this.#preRender()
+				}
+			}
+						
 		}
 
 		cells.forEach( obj => {
@@ -293,7 +319,7 @@ class AgendaJS {
 			.innerText = obj.format( 'h:mm a' )
 			
 			for ( let day = 0; day < hCells.length; day++ ) {
-				
+
 				let cell = this.#_r( 'div', '_a-cell _a-flex _a-flex-align-center' + ( halfHour ? ' _a-cell-30-mins' : '' ), this.#aGrid )
 				cell.dataset.ts = hCells[day].hour( obj.hour() ).minute( obj.minute() ).unix()
  
@@ -305,10 +331,13 @@ class AgendaJS {
 						this.#newEvent( cell.dataset.ts )
 					} )
 				}
-				
-				cell.onclick = () => {
-					this.#preRender( { time: hCells[day], view: 'day' } )
+
+				if ( this.#freezedDates.includes( hCells[day].unix() ) ) {
+					this.#_r( 'span', ['_a-test'], cell ).innerText = 'Frz'
 				}
+				
+				cell.onclick = () =>
+					this.#preRender( { time: hCells[day], view: 'day' } )
 				cell.onmouseenter = () =>
 					this.#_getPrvsSblng( cell, '_a-right-align' ).classList.add( '_a-row-hover' )
 				cell.onmouseleave = () =>
