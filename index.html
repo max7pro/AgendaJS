@@ -15,25 +15,51 @@
 
 	<script>
 
-		// let agenda = new AgendaJS('#agenda-js', {
-		// 	events: JSON.parse( localStorage.getItem('_agendajs-events') )
-		// })
+		// Just to simulate a server we are using localStorage, which required to store the data
+		// between page reloads.
+		const api = {
+			sendEvents: ( events ) => localStorage.setItem( '_agendajs-events', JSON.stringify( events ) ),
+			receiveEvents: () => JSON.parse( localStorage.getItem( '_agendajs-events' ) ),
+			sendFreezed: ( freezed ) => localStorage.setItem( '_agendajs-freezed', JSON.stringify( freezed ) ),
+			receiveFreezed: () => JSON.parse( localStorage.getItem( '_agendajs-freezed' ) )
+		}
 
-		let agenda = new AgendaJS( '#agenda-js' )
-		// agenda.events = JSON.parse( localStorage.getItem( '_agendajs-events' ) )
-		agenda.loadEvents( JSON.parse( localStorage.getItem( '_agendajs-events' ) ) )
+		// So, let's ask our 'server' to send us the data stored from its 'database'
+		let events = api.receiveEvents(),
+			freezed = api.receiveFreezed()
 
-		agenda.onEventCreated( e => {
-			console.log( 'Event successfully created', e )
-			localStorage.setItem('_agendajs-events', JSON.stringify(agenda.events))
+
+		let agenda = new AgendaJS('#agenda-js', {
+			data: {
+				events: events,
+				freezed: freezed
+			}
 		})
 
-		agenda.onDateSaved( e => {
-			console.log( 'Day events extracted', e )
+		// let agenda = new AgendaJS( '#agenda-js')
+		// agenda.events = events
+		// agenda.freezed = freezed
+		// agenda.setEvents( events )
+		// agenda.setFreezed( freezed )
+
+		agenda.onEventCreated( event => {
+			console.log( 'Event successfully created', event )
+
+			// let events = agenda.events
+			let events = agenda.getEvents()
+
+			api.sendEvents( events )
+		})
+
+		agenda.onDayEventsObtained( ( timestamp, events ) => {
+			console.log( 'Day events obtained', timestamp, events )
+
+			// let freezed = agenda.freezed
+			let freezed = agenda.getFreezed()
+
+			api.sendFreezed( freezed )
 		} )
-
-		
-
+	
 	</script>
 	
 </body>

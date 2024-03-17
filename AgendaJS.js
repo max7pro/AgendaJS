@@ -6,7 +6,6 @@ class AgendaJS {
 		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
 		logToConsole: true,	// true, false,
 
-		events: {},
 		fieldOne: 'name',
 		fieldTwo: 'phone',
 
@@ -28,6 +27,11 @@ class AgendaJS {
 				saveBtnLabel: 'Save',
 				cancelBtnLabel: 'Cancel'
 			}
+		},
+
+		data: {
+			events: {},
+			freezed: [],
 		}
 	}
 
@@ -39,9 +43,8 @@ class AgendaJS {
 	#popup = null
 	#datetime
 	#eventsStorage = {}
-	#freezedDates = []
+	#freezedStorage = []
 
-	#colors
 	#icons = {
 		'calendar-plus': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpY29uIGljb24tdGFibGVyIGljb24tdGFibGVyLWNhbGVuZGFyLXBsdXMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZT0iY3VycmVudENvbG9yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIHN0cm9rZT0ibm9uZSIgZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMi41IDIxaC02LjVhMiAyIDAgMCAxIC0yIC0ydi0xMmEyIDIgMCAwIDEgMiAtMmgxMmEyIDIgMCAwIDEgMiAydjUiIC8+PHBhdGggZD0iTTE2IDN2NCIgLz48cGF0aCBkPSJNOCAzdjQiIC8+PHBhdGggZD0iTTQgMTFoMTYiIC8+PHBhdGggZD0iTTE2IDE5aDYiIC8+PHBhdGggZD0iTTE5IDE2djYiIC8+PC9zdmc+'
 	}
@@ -84,21 +87,20 @@ class AgendaJS {
 			weekStart: this.#options.firstIsSunday ? 0 : 1
 		} )
 
-		this.#view = this.#options.defaultView
 		this.#datetime = dayjs().startOf( 'D' )
+		this.#view = this.#options.defaultView
+		this.#eventsStorage = this.#options.data.events ?? {}
+		this.#freezedStorage = this.#options.data.freezed ?? []
 
 		this.#agendaRoot = this.#_r( 'div', ['_a-canvas', '_a-m3'], document.querySelector( rootSelector ) )
 		this.#initializeToolbar()
 		this.#aGrid = this.#_r( 'div', ['_a-grid'], this.#agendaRoot )
-
-		this.#options.events && Object.keys( this.#options.events ).length ?
-			this.events = this.#options.events :
-			this.#preRender()
 		
 		this.#initialized = true
-		
+
 		this.#_l( this, 'AgendaJS has been initialized' )
-		
+
+		this.#preRender()
 	}
 
 	#initializeToolbar () {
@@ -128,28 +130,31 @@ class AgendaJS {
 		this.#view = view ?? this.#view
 		this.#datetime = time ?? this.#datetime
 
-		// this.#_eraseDomTree( this.aGrid )
 		this.#aGrid.innerHTML = null
 		this.#aGrid.className = `_a-grid _a-grid-${ this.#view }`
 		document.querySelectorAll( '._a-view-switch ._a-btn' ).forEach( btn => btn.classList.remove( '_a-btn-slctd' ) )
 		document.querySelector( `[data-view="${ this.#view }"]` ).classList.add( '_a-btn-slctd' )
 
-		this.#_l( ['[Time:] ' + this.#datetime.format( 'ddd, MMMM D, YYYY HH:mm A' ), '[View:] ' + this.#view], 'Prerender' )
+		this.#_l( [
+			'[Time:] ' + this.#datetime.format( 'ddd, MMMM D, YYYY HH:mm A' ),
+			'[View:] ' + this.#view,
+			// '[Events:] ', this.#eventsStorage
+		], 'Prerender' )
 
 		// this[`dayView`]( this.#datetime )
 		// eval( `this.#${ this.#view }View( this.#datetime )` )
 		switch ( this.#view ) {
 			case 'month':
 				this.#monthGrid( this.#datetime )
-				this.#monthEvents()
+				if ( Object.keys(this.#eventsStorage).length ) this.#monthEvents( this.#eventsStorage )
 				break
 			case 'week':
 				this.#weekGrid( this.#datetime )
-				this.#weekEvents()
+				if ( Object.keys(this.#eventsStorage).length ) this.#weekEvents( this.#eventsStorage )
 				break
 			case 'day':
 				this.#dayGrid( this.#datetime )
-				this.#dayEvents()
+				if ( Object.keys(this.#eventsStorage).length ) this.#dayEvents( this.#eventsStorage )
 				break
 			default: return
 		}
@@ -192,10 +197,13 @@ class AgendaJS {
 				const events = Object.fromEntries(
 					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
 				)
-				if ( Object.keys( events ).length )
-					this.#fireEvt( 'onDateSaved', events )
-				this.#freezedDates.push( time.unix() )
-				this.#preRender()
+				if ( Object.keys( events ).length ) {
+					if ( !this.#freezedStorage.includes( time.unix() ) ) {
+						this.#freezedStorage.push( time.unix() )
+						this.#preRender()
+					}
+					this.#fireEvt( 'onDayEventsObtained', time.unix(), events )
+				}
 			}
 		}
 
@@ -215,7 +223,7 @@ class AgendaJS {
 			if (
 				cell.dataset.ts > dayjs().unix() &&
 				!this.#eventsStorage[cell.dataset.ts] &&
-				!this.#freezedDates.includes( time.unix() )
+				!this.#freezedStorage.includes( time.unix() )
 			) {
 
 				let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
@@ -233,15 +241,15 @@ class AgendaJS {
 				this.#_getPrvsSblng( cell, '_a-right-align' ).classList.remove( '_a-row-hover' )
 		} )
 
-		this.#_l( [cells], 'Day grid has been rendered' )
+		this.#_l( [cells], 'Day grid rendering' )
 
 	}
-	#dayEvents () {
+	#dayEvents ( evnts ) {
 
 		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
 			events = Object.fromEntries(
-				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
+				Object.entries( evnts ).filter( ( [ts] ) => ts >= min && ts <= max )
 			)
 		
 		for ( const ts in events ) {			
@@ -250,7 +258,7 @@ class AgendaJS {
 				` ${ this.#options.strings.popup.fieldTwoLabel }: ${ events[ts][this.#options.fieldTwo] }`
 		}
 
-		this.#_l( [events], 'Render events badges' )
+		this.#_l( [events], 'Events badges rendering' )
 	}
 
 	#weekGrid ( time ) {
@@ -284,7 +292,7 @@ class AgendaJS {
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
 
 		for ( let cell = 0; cell < hCells.length; cell++ ) {
-
+			
 			const isActive = Object.keys( this.#eventsStorage ).some( ts =>
 				hCells[cell].startOf( 'date' ).unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
 			)
@@ -302,10 +310,13 @@ class AgendaJS {
 					const events = Object.fromEntries(
 						Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
 					)
-					if ( Object.keys( events ).length )
-						this.#fireEvt( 'onDateSaved', events )
-					this.#freezedDates.push( hCells[cell].unix() )
-					this.#preRender()
+					if ( Object.keys( events ).length ) {
+						if ( !this.#freezedStorage.includes( hCells[cell].unix() ) ) {
+							this.#freezedStorage.push( hCells[cell].unix() )
+							this.#preRender()
+						}
+						this.#fireEvt( 'onDayEventsObtained', hCells[cell].unix(), events )
+					}
 				}
 			}
 						
@@ -329,7 +340,7 @@ class AgendaJS {
 				if (
 					cell.dataset.ts > dayjs().unix() &&
 					!this.#eventsStorage[cell.dataset.ts] &&
-					!this.#freezedDates.includes( hCells[day].unix() )
+					!this.#freezedStorage.includes( hCells[day].unix() )
 				) {
 					let btnPlus = this.#_r( 'span', ['_a-cell-btn-plus'], cell )
 					btnPlus.innerHTML = `<img src=${ this.#icons['calendar-plus'] }>`
@@ -348,15 +359,15 @@ class AgendaJS {
 			}
 		} )
 
-		this.#_l( [hCells, cells], 'Week grid has been rendered' )
+		this.#_l( [hCells, cells], 'Week grid rendering' )
 	}
-	#weekEvents () {
+	#weekEvents ( evnts) {
 
 		let min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
 			colors = this.#_clone( this.#options.colors ),
 			events = Object.fromEntries(
-				Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= min && ts <= max )
+				Object.entries( evnts ).filter( ( [ts] ) => ts >= min && ts <= max )
 			)
 
 		for ( const ts in events ) {
@@ -366,7 +377,7 @@ class AgendaJS {
 			badge.style.backgroundColor = colors.shift()
 		}
 
-		this.#_l( [events], 'Render events badges' )
+		this.#_l( [events], 'Events badges rendering' )
 	}
 
 	#monthGrid ( time ) {
@@ -396,22 +407,22 @@ class AgendaJS {
 			cell.onclick = () => this.#preRender( { time: obj, view: 'day' } )
 		} )
 
-		this.#_l( [hCells, cells], 'Month grid has been rendered ' )
+		this.#_l( [hCells, cells], 'Month grid rendering' )
 
 	}
-	#monthEvents () {
+	#monthEvents ( evnts ) {
 
 		const
 			min = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]' ).dataset.ts ),
 			max = Number.parseInt( this.#aGrid.querySelector( '._a-cell[data-ts]:last-child' ).dataset.ts ),
 			events = {}
 
-		for ( let ts in this.#eventsStorage ) {
+		for ( let ts in evnts ) {
 			if ( ts >= min && ts <= max ) {
 				let date = dayjs.unix( ts ).startOf( 'date' ).unix()
 				if ( !events.hasOwnProperty( date ) ) events[date] = []
 				events[date].push(
-					Object.assign( this.#_clone( this.#eventsStorage[ts] ), { timestamp: ts } )
+					Object.assign( this.#_clone( evnts[ts] ), { timestamp: ts } )
 				)
 			}
 		}
@@ -428,7 +439,7 @@ class AgendaJS {
 			} )
 		}
 
-		this.#_l( [events], 'Render events badges' )
+		this.#_l( [events], 'Events badges rendering' )
 	}
 	
 	#setHeading ( str ) {
@@ -519,14 +530,6 @@ class AgendaJS {
 		return JSON.parse( JSON.stringify( value ) )
 	}
 
-	#_eraseDomTree ( element ) {
-		while ( element.firstChild ) {
-			this.#_eraseDomTree( element.firstChild )
-			element.firstChild.remove() 
-			setTimeout( () => delete (element.firstChild), 5);
-		}
-	}
-
 	#_getPrvsSblng (element, className) {
 		while ( element ) {
 			element = element.previousElementSibling;
@@ -561,35 +564,55 @@ class AgendaJS {
 		}
 	}
 
+
+	// Public API methods
 	get events () {
 		return this.#eventsStorage
 	}
 	set events ( value ) {
-		let interval = setInterval( () => {
+		const interval = setInterval( () => {
 			if ( this.#initialized ) {
 				clearInterval( interval )
 				this.#eventsStorage = value
-				this.#_l( [this.#eventsStorage], 'Events loaded' )
+				this.#_l( [this.#eventsStorage], 'Events has been loaded' )
 				this.#preRender()
 			}
 		}, 25 )
 	}
 
+	get freezed () {
+		return this.#freezedStorage
+	}
+	set freezed ( value ) {
+		const interval = setInterval( () => {
+			if ( this.#initialized ) {
+				clearInterval( interval )
+				this.#freezedStorage = value
+				this.#_l( [this.#freezedStorage], 'Freezed dates has been loaded' )
+				this.#preRender()
+			}
+		}, 25 )
+	}
 
-	// Public API methods
-
-	async loadEvents ( events ) {
+	setEvents ( events ) {
 		this.events = events
 	}
-	readEvents ( events ) {
+	getEvents () {
 		return this.#eventsStorage
+	}
+
+	setFreezed ( freezed ) {
+		this.freezed = freezed
+	}
+	getFreezed () {
+		return this.#freezedStorage
 	}
 
 	onEventCreated ( callback ) {
 		this.#bindEvtListener( 'onNewEventCreated', callback )
 	}
-	onDateSaved ( callback ) {
-		this.#bindEvtListener( 'onDateSaved', callback )
+	onDayEventsObtained ( callback ) {
+		this.#bindEvtListener( 'onDayEventsObtained', callback )
 	}
 	
 }
