@@ -1,14 +1,16 @@
 class AgendaJS {
+	// Default values for AgendaJS options
 	#options = {
-		defaultView: 'week',  // month, week, day
-		firstIsSunday: false, // true, false
-		dayStartAM: 6, // first hour of event list for week and day view, 1-12 AM 
-		dayEndPM: 11, // last hour of event list for week and day view, 1-12 PM
-		logToConsole: true,	// true, false,
+		defaultView: 'month',  	// Type of view to on page loading - month, week, day
+		firstIsSunday: false, 	// Whether to output Sunday as the first day of the week - true, false
+		dayStartAM: 6, 			// First hour of event list for week and day view, 1-12 AM	
+		dayEndPM: 11, 			// Last hour of event list for week and day view, 1-12 PM
+		logToConsole: false, 	// Whether to output debug messages to console - true, false
 
-		fieldOne: 'name',
-		fieldTwo: 'phone',
+		fieldOne: 'name',		// Name of the 1st field to use in event object and its JSON representation
+		fieldTwo: 'phone',		// Same for 2nd field
 
+		// Colors for events labels
 		colors: [
 			'#178bb2FF',
 			'#48B4A9FF',
@@ -17,8 +19,10 @@ class AgendaJS {
 			'#2FB079FF',
 			'#FFD35E',
 		],
+		// Strings for static text content
 		strings: {
 			allDayLabel: 'all-day',
+			collectBtnLabel: 'Collect',
 			popup: {
 				fieldOneLabel: 'Name',
 				fieldTwoLabel: 'Phone',
@@ -28,9 +32,12 @@ class AgendaJS {
 				cancelBtnLabel: 'Cancel'
 			}
 		},
-
-		data: {
+		// Data to put to AgendaJS instance on page loading 
+		payload: {
+			// list of events to be output on calendar loading
 			events: {},
+			// list of dates, to block ability to create new events
+			// because 'all-days' button was clicked and events for this date was saved
 			freezed: [],
 		}
 	}
@@ -46,7 +53,7 @@ class AgendaJS {
 	#freezedStorage = []
 
 	#icons = {
-		'calendar-plus': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpY29uIGljb24tdGFibGVyIGljb24tdGFibGVyLWNhbGVuZGFyLXBsdXMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZT0iY3VycmVudENvbG9yIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIHN0cm9rZT0ibm9uZSIgZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMi41IDIxaC02LjVhMiAyIDAgMCAxIC0yIC0ydi0xMmEyIDIgMCAwIDEgMiAtMmgxMmEyIDIgMCAwIDEgMiAydjUiIC8+PHBhdGggZD0iTTE2IDN2NCIgLz48cGF0aCBkPSJNOCAzdjQiIC8+PHBhdGggZD0iTTQgMTFoMTYiIC8+PHBhdGggZD0iTTE2IDE5aDYiIC8+PHBhdGggZD0iTTE5IDE2djYiIC8+PC9zdmc+'
+		'calendar-plus': 'data:image/svg+xml;base64,PHN2ZyAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiAgd2lkdGg9IjI0IiAgaGVpZ2h0PSIyNCIgIHZpZXdCb3g9IjAgMCAyNCAyNCIgIGZpbGw9Im5vbmUiICBzdHJva2U9ImN1cnJlbnRDb2xvciIgIHN0cm9rZS13aWR0aD0iMSIgIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgIHN0cm9rZS1saW5lam9pbj0icm91bmQiICBjbGFzcz0iaWNvbiBpY29uLXRhYmxlciBpY29ucy10YWJsZXItb3V0bGluZSBpY29uLXRhYmxlci1jYWxlbmRhci1wbHVzIj48cGF0aCBzdHJva2U9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTIuNSAyMWgtNi41YTIgMiAwIDAgMSAtMiAtMnYtMTJhMiAyIDAgMCAxIDIgLTJoMTJhMiAyIDAgMCAxIDIgMnY1IiAvPjxwYXRoIGQ9Ik0xNiAzdjQiIC8+PHBhdGggZD0iTTggM3Y0IiAvPjxwYXRoIGQ9Ik00IDExaDE2IiAvPjxwYXRoIGQ9Ik0xNiAxOWg2IiAvPjxwYXRoIGQ9Ik0xOSAxNnY2IiAvPjwvc3ZnPg==',
 	}
 
 	constructor ( rootSelector, opts = {} ) {
@@ -89,8 +96,8 @@ class AgendaJS {
 
 		this.#datetime = dayjs().startOf( 'D' )
 		this.#view = this.#options.defaultView
-		this.#eventsStorage = this.#options.data.events ?? {}
-		this.#freezedStorage = this.#options.data.freezed ?? []
+		this.#eventsStorage = this.#options.payload.events ?? {}
+		this.#freezedStorage = this.#options.payload.freezed ?? []
 
 		this.#agendaRoot = this.#_r( 'div', ['_a-canvas', '_a-m3'], document.querySelector( rootSelector ) )
 		this.#initializeToolbar()
@@ -189,7 +196,7 @@ class AgendaJS {
 		if (isActive) {
 			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
 
-			btn.innerText = 'Save'
+			btn.innerText = this.#options.strings.collectBtnLabel
 			btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
 			btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
 
@@ -303,7 +310,7 @@ class AgendaJS {
 
 				btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
 
-				btn.innerText = 'Save'
+				btn.innerText = this.#options.strings.collectBtnLabel
 				btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
 				btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
 				btn.onclick = () => {

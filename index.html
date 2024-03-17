@@ -15,8 +15,10 @@
 
 	<script>
 
-		// Just to simulate a server we are using localStorage, which required to store the data
-		// between page reloads.
+		// To simulate a server we are using localStorage, 
+		// which required to store the data between page reloads.
+		// Note! This is not part of AGendaJS class, it's just a helper function
+		// and we need it just to run demo
 		const api = {
 			sendEvents: ( events ) => localStorage.setItem( '_agendajs-events', JSON.stringify( events ) ),
 			receiveEvents: () => JSON.parse( localStorage.getItem( '_agendajs-events' ) ),
@@ -28,34 +30,51 @@
 		let events = api.receiveEvents(),
 			freezed = api.receiveFreezed()
 
-
 		let agenda = new AgendaJS('#agenda-js', {
-			data: {
+			payload: {
+				// list of events to be displayed on calendar loading
 				events: events,
+				// list of dates, to block ability to create new events
+				// because 'all-days' button was clicked and events for this date was saved
 				freezed: freezed
 			}
 		})
 
+		// Also you can set events and freezed dates later, using separate methods
 		// let agenda = new AgendaJS( '#agenda-js')
+		// To set events use
 		// agenda.events = events
-		// agenda.freezed = freezed
+		// or
 		// agenda.setEvents( events )
+		// To set freezed dates use
+		// agenda.freezed = freezed
+		// or
 		// agenda.setFreezed( freezed )
 
+		// onEventCreated - callback function to be called each time a new event is created
+		// event - object representing new event
 		agenda.onEventCreated( event => {
+			// Get all events from AgendaJS instance (just created one already added to whole list)
+			let events = agenda.getEvents()
+			// or you can use getter
+			// let events = agenda.events
+			
 			console.log( 'Event successfully created', event )
 
-			// let events = agenda.events
-			let events = agenda.getEvents()
-
+			// Send all events to 'server'
 			api.sendEvents( events )
 		})
 
+		// onDayEventsObtained - callback (js event) function to be called when new events are obtained for a day
+		// timestamp - timestamp representing date of events
+		// events - list of events for a day
 		agenda.onDayEventsObtained( ( timestamp, events ) => {
 			console.log( 'Day events obtained', timestamp, events )
 
-			// let freezed = agenda.freezed
 			let freezed = agenda.getFreezed()
+			// or you can use getter
+			// let freezed = agenda.freezed
+			
 
 			api.sendFreezed( freezed )
 		} )
