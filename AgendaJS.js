@@ -21,6 +21,7 @@ class AgendaJS {
 		],
 		// Strings for static text content
 		strings: {
+			eventsQuantityLabel: 'events',
 			allDayLabel: 'all-day',
 			collectBtnLabel: 'Collect',
 			popup: {
@@ -189,28 +190,28 @@ class AgendaJS {
 		this.#_r( 'div', ['_a-cell', '_a-right-align'], this.#aGrid ).innerText = this.#options.strings.allDayLabel
 		// this.#_r( 'div', ['_a-cell'], this.#aGrid )
 
-		const isActive = Object.keys( this.#eventsStorage ).some( ts =>
+		const hasEvents = Object.keys( this.#eventsStorage ).some( ts =>
 			time.startOf( 'date' ).unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
 		)
 		let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
-		if (isActive) {
+
+		if ( hasEvents ) {
+			
 			btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
-
 			btn.innerText = this.#options.strings.collectBtnLabel
-			btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
-			btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
 
-			btn.onclick = () => {
-				const events = Object.fromEntries(
-					Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
-				)
-				if ( Object.keys( events ).length ) {
-					if ( !this.#freezedStorage.includes( time.unix() ) ) {
-						this.#freezedStorage.push( time.unix() )
-						this.#preRender()
-					}
+			const isAlreadyCollected = this.#freezedStorage.includes( time.unix() )
+
+			if ( !isAlreadyCollected ) {
+				btn.dataset.min = time.hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+				btn.dataset.max = time.hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+				btn.onclick = () => {
+					this.#freezedStorage.push( time.unix() )
+					this.#preRender()
 					this.#fireEvt( 'onDayEventsObtained', time.unix(), events )
 				}
+			} else {
+				btn.classList.add( '_a-btn-link-inactive' )
 			}
 		}
 
@@ -300,31 +301,31 @@ class AgendaJS {
 
 		for ( let cell = 0; cell < hCells.length; cell++ ) {
 			
-			const isActive = Object.keys( this.#eventsStorage ).some( ts =>
-				hCells[cell].startOf( 'date' ).unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
+			const hasEvents = Object.keys( this.#eventsStorage ).some( ts =>
+				hCells[cell].unix() == dayjs.unix( ts ).startOf( 'date' ).unix()
 			)
 			
 			let btn = this.#_r( 'div', ['_a-cell', '_a-center-align'], this.#aGrid )
 			
-			if ( isActive ) {
+			if ( hasEvents ) {
+
+				const isAlreadyCollected = this.#freezedStorage.includes( hCells[cell].unix() )
 
 				btn = this.#_r( 'div', ['_a-btn', '_a-btn-primary', '_a-btn-link'], btn )
-
 				btn.innerText = this.#options.strings.collectBtnLabel
-				btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
-				btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
-				btn.onclick = () => {
-					const events = Object.fromEntries(
-						Object.entries( this.#eventsStorage ).filter( ( [ts] ) => ts >= btn.dataset.min && ts <= btn.dataset.max )
-					)
-					if ( Object.keys( events ).length ) {
-						if ( !this.#freezedStorage.includes( hCells[cell].unix() ) ) {
-							this.#freezedStorage.push( hCells[cell].unix() )
-							this.#preRender()
-						}
+
+				if ( !isAlreadyCollected ) {
+					btn.dataset.min = hCells[cell].hour( rowStart.hour() ).minute( rowStart.minute() ).unix()
+					btn.dataset.max = hCells[cell].hour( rowEnd.hour() ).minute( rowEnd.minute() ).unix()
+					btn.onclick = () => {
+						this.#freezedStorage.push( hCells[cell].unix() )
+						this.#preRender()
 						this.#fireEvt( 'onDayEventsObtained', hCells[cell].unix(), events )
 					}
+				} else {
+					btn.classList.add( '_a-btn-link-inactive' )
 				}
+				
 			}
 						
 		}
@@ -436,7 +437,10 @@ class AgendaJS {
 
 		for ( let date in events ) {
 			let colors = this.#_clone( this.#options.colors ),
+				qLabel = this.#_r( 'span', ['_a-events-q-label'], this.#aGrid.querySelector( `[data-ts="${ date }"]` ) ),
 				group = this.#_r( 'span', ['_a-events-group', '_a-flex', '_a-flex-column'], this.#aGrid.querySelector( `[data-ts="${ date }"]` ) )
+
+			qLabel.innerText = events[date].length + ' ' + this.#options.strings.eventsQuantityLabel
 
 			events[date].forEach( event => {
 				if ( !colors.length ) colors = this.#_clone( this.#options.colors )

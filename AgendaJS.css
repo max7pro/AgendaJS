@@ -87,12 +87,13 @@
 	color: rgb(218, 236, 243);
 	background-color: rgb(23, 139, 178);
 }
-._a-btn._a-btn-inactive {
-	color: rgba(46, 51, 56); cursor: not-allowed;
-}
 ._a-btn._a-btn-link {
 	height: initial; padding: 0; border: none;
 	background-color: transparent; line-height: initial;
+}
+._a-btn-link._a-btn-link-inactive {
+	color: #9a9a9a;
+	cursor: not-allowed;
 }
 ._a-btn._a-btn-link:hover {
 	background-color: transparent; text-decoration: underline;
@@ -128,7 +129,8 @@
 ._a-grid-month ._a-cell[data-ts] {
 	height: 100px; text-align: right; 
 }
-._a-grid-week ._a-cell[data-ts] {
+._a-grid-week ._a-cell[data-ts],
+._a-grid-day ._a-cell[data-ts] {
 	padding: 3px;  
 }
 
@@ -158,14 +160,23 @@
 	color: #6f6f6f; 
 }
 
-._a-event-badge {
-	color: #fff; display: inline-block;
+._a-events-q-label {
+	position: absolute; bottom: 5px; left: 7px; 
+	border-bottom: 1px dotted #6f6f6f; font-size: .9em; cursor: pointer;
 }
 ._a-events-group {
-	position: absolute; top: 0; left: 0; padding-left: 3px; padding-top: 2px;
+	position: absolute; bottom: 25px; left: -6px; padding: 3px;
+	background: #fff; border: 1px solid #e1e1e1; visibility: collapse;
+}
+._a-events-q-label:hover + ._a-events-group {
+	visibility: visible;
 }
 ._a-events-group ._a-event-badge {
-	margin-bottom: 1px; padding: 2px 5px; font-size: 0.8em;
+	display: inline-block; margin-bottom: 1px; padding: 2px 5px; 
+	font-size: 0.8em; color: #fff;
+}
+._a-events-group ._a-event-badge:last-child {
+	margin-bottom: 0;
 }
 ._a-grid-week ._a-event-badge {
 	max-width: 100%; padding: 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
